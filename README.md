@@ -1,0 +1,2 @@
+# Tamagochi-Team
+A pet

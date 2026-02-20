@@ -1,26 +1,94 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-
 model Pet {
-  id            Int      @id @default(1)
-  hunger        Int
-  energy        Int
-  happiness     Int
-  health        Int
-  lastUpdate    DateTime
-  playCooldown  DateTime?
+  id           Int           @id @default(autoincrement())
+  name         String?       @db.VarChar(100)
+  hunger       Int           @default(100)
+  energy       Int           @default(100)
+  happiness    Int           @default(100)
+  hygiene      Int           @default(100)
+  life         Int           @default(100)
+  appearance   String?
+  lastUpdate   DateTime      @default(now())
+  playCooldown DateTime?
+  workSessions WorkSession[] @relation("PetWorkSessions")
+
+  @@map("pets")
+}
+
+model Item {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String
+  effect    Json?
+  price     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("items")
+}
+
+model GameScore {
+  id        Int      @id @default(autoincrement())
+  game      String
+  player    String
+  score     Int
+  createdAt DateTime @default(now())
+
+  @@map("game_scores")
+}
+
+model Purchase {
+  id       Int      @id @default(autoincrement())
+  petId    Int
+  itemId   Int
+  quantity Int      @default(1)
+  boughtAt DateTime @default(now())
+
+  @@map("purchases")
+}
+
+model Person {
+  id                Int                @id @default(autoincrement())
+  name              String
+  role              String?
+  code              String             @unique
+  createdAt         DateTime           @default(now())
+  coins             Int                @default(0)
+  workSessions      WorkSession[]      @relation("PersonWorkSessions")
+  companionSessions CompanionSession[] @relation("PersonCompanionSessions")
+
+  @@map("people")
+}
+
+model CompanionSession {
+  id         Int      @id @default(autoincrement())
+  personId   Int
+  code       String
+  startedAt  DateTime @default(now())
+  lastTickAt DateTime @default(now())
+  active     Boolean  @default(true)
+  coinsEarned Int     @default(0)
+
+  person Person @relation("PersonCompanionSessions", fields: [personId], references: [id])
+
+  @@map("companion_sessions")
+}
+
+model WorkSession {
+  id         Int      @id @default(autoincrement())
+  petId      Int
+  personId   Int
+  startedAt  DateTime @default(now())
+  lastTickAt DateTime @default(now())
+  active     Boolean  @default(true)
+  person     Person   @relation("PersonWorkSessions", fields: [personId], references: [id])
+  pet        Pet      @relation("PetWorkSessions", fields: [petId], references: [id])
+
+  @@map("work_sessions")
 }

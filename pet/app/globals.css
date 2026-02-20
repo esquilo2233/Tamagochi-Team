@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-bg: #ffffff;
+  --muted: #666666;
+  --muted-2: #999999;
+  --accent: #0984e3;
+  --card-border: #eeeeee;
 }
 
 @theme inline {
@@ -12,15 +17,56 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Prefer system dark mode but use a soft gray background (not pure black) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #2b2b2b; /* soft gray instead of black */
+    --foreground: #e6e6e6;
+    --card-bg: #323232;
+    --muted: #bdbdbd;
+    --muted-2: #d1d5db;
+    --accent: #58a6ff;
+    --card-border: #3a3a3a;
   }
+}
+
+/* also support explicit data-theme attribute for JS toggling */
+:root[data-theme='dark'] {
+  --background: #2b2b2b;
+  --foreground: #e6e6e6;
+  --card-bg: #323232;
+  --muted: #bdbdbd;
+  --muted-2: #d1d5db;
+  --accent: #58a6ff;
+  --card-border: #3a3a3a;
+}
+:root[data-theme='light'] {
+  --background: #ffffff;
+  --foreground: #171717;
+  --card-bg: #ffffff;
+  --muted: #666666;
+  --muted-2: #999999;
+  --accent: #0984e3;
+  --card-border: #eeeeee;
+}
+
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
 }
+
+/* sensible defaults for common elements */
+.card {
+  background: var(--card-bg);
+  color: var(--foreground);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+.muted { color: var(--muted); }

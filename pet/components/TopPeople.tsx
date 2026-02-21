@@ -9,11 +9,10 @@ export default function TopPeople({ limit = 5 }: { limit?: number }) {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch('/api/people');
+      const res = await fetch(`/api/people-ranking?limit=${limit}`);
       const j = await res.json();
       const arr = Array.isArray(j) ? j : [];
-      arr.sort((a: any, b: any) => (b.coins ?? 0) - (a.coins ?? 0));
-      setPeople(arr.slice(0, limit));
+      setPeople(arr);
     } catch (e) {
       // ignore
     } finally { setLoading(false); }

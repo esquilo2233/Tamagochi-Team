@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { awardCoinsToPerson, applyItemEffect } from "../../../lib/pet";
+import { awardCoinsToPerson, applyItemEffect, getRewardsConfig } from "../../../lib/pet";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // expected: { game: string, personId?: number, player?: string, score: number }
+    // expected: { game: string, personId?: number, player?: string, score: number, outcome?: 'win'|'lose'|'draw' }
     if (!body || !body.game || typeof body.score !== 'number') {
       return NextResponse.json({ ok: false, error: 'missing game or score' }, { status: 400 });
     }
@@ -12,10 +12,28 @@ export async function POST(req: Request) {
     const personId = typeof body.personId === 'number' ? body.personId : undefined;
     if (!personId) return NextResponse.json({ ok: false, error: 'missing personId' }, { status: 400 });
 
-    // simple reward formula: 1 coin per 3 points
-    const coins = Math.max(0, Math.floor(body.score / 3));
-    const bonus = body.score >= 50 ? 5 : 0;
-    const total = coins + bonus;
+    const rewards = await getRewardsConfig();
+    const game = String(body.game);
+    const outcome = String(body.outcome ?? '').toLowerCase();
+    const rawScore = Number(body.score ?? 0);
+
+    let total = 0;
+    if (game === 'clickrush') {
+      const isWin = rawScore >= rewards.clickrushWinScoreThreshold;
+      total = isWin ? rewards.clickrushWinCoins : rewards.clickrushLoseCoins;
+    } else if (game === 'tictactoe') {
+      if (outcome === 'win') total = rewards.tictactoeWinCoins;
+      else if (outcome === 'lose') total = rewards.tictactoeLoseCoins;
+      else total = 0;
+    } else if (game === 'chess') {
+      if (outcome === 'win') total = rewards.chessWinCoins;
+      else if (outcome === 'lose') total = rewards.chessLoseCoins;
+      else total = 0;
+    } else if (game === 'connect4') {
+      if (outcome === 'win') total = rewards.connect4WinCoins;
+      else if (outcome === 'lose') total = rewards.connect4LoseCoins;
+      else total = 0;
+    }
 
     const updatedPerson = await awardCoinsToPerson(personId, total, { game: body.game, playerName: body.player, score: body.score });
 

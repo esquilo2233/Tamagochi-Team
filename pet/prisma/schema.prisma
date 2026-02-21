@@ -61,8 +61,10 @@ model Person {
   code              String             @unique
   createdAt         DateTime           @default(now())
   coins             Int                @default(0)
+  totalTimeSeconds  Int                @default(0)
   workSessions      WorkSession[]      @relation("PersonWorkSessions")
   companionSessions CompanionSession[] @relation("PersonCompanionSessions")
+  samuraiSessions   SamuraiSession[]   @relation("PersonSamuraiSessions")
 
   @@map("people")
 }
@@ -92,4 +94,17 @@ model WorkSession {
   pet        Pet      @relation("PetWorkSessions", fields: [petId], references: [id])
 
   @@map("work_sessions")
+}
+
+model SamuraiSession {
+  id           Int      @id @default(autoincrement())
+  personId     Int
+  petId        Int
+  startedAt    DateTime @default(now())
+  lastClickAt  DateTime @default(now())
+  active       Boolean  @default(true)
+  totalSeconds Int      @default(0)
+  person       Person   @relation("PersonSamuraiSessions", fields: [personId], references: [id])
+
+  @@map("samurai_sessions")
 }

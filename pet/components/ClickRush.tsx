@@ -70,7 +70,7 @@ export default function ClickRush({ personId, onFinish }: { personId?: number; o
   {!running && resultMsg && <div style={{ marginTop: 10, color: 'var(--foreground)' }}>{resultMsg}</div>}
 
       <div style={{ marginTop: 12 }}>
-        <small style={{ color: 'var(--muted-2)' }}>Cada 3 cliques = 1 moeda. Bônus por pontuação alta.</small>
+        <small style={{ color: 'var(--muted-2)' }}>Moedas configuráveis no painel /cenas.</small>
       </div>
     </div>
   );

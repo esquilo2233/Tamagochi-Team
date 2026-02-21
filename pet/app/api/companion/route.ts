@@ -15,6 +15,22 @@ export async function POST(req: Request) {
       }
       const session = await startCompanionSession(body.code);
       const person = await getPersonByCode(body.code);
+
+      // Criar também uma sessão de tracking de tempo para o companion
+      if (person && body.petId) {
+        const samuraiSession = await prisma.samuraiSession.create({
+          data: {
+            personId: person.id,
+            petId: body.petId,
+            startedAt: new Date(),
+            lastClickAt: new Date(),
+            active: true,
+            totalSeconds: 0,
+          },
+        });
+        return NextResponse.json({ ok: true, session, person, samuraiSessionId: samuraiSession.id });
+      }
+
       return NextResponse.json({ ok: true, session, person });
     }
 
@@ -23,6 +39,15 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, error: "missing sessionId" }, { status: 400 });
       }
       const session = await stopCompanionSession(body.sessionId);
+
+      // Parar também a sessão de tracking associada
+      if (session && session.personId) {
+        await prisma.samuraiSession.updateMany({
+          where: { personId: session.personId, active: true },
+          data: { active: false },
+        });
+      }
+
       return NextResponse.json({ ok: true, session });
     }
 

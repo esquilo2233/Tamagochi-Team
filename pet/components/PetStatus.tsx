@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import TopPeople from "./TopPeople";
+import TopTime from "./TopTime";
 import PetCompanion from "./PetCompanion";
 import MinigamesModal from "./MinigamesModal";
 import Link from "next/link";
@@ -44,6 +45,15 @@ export default function PetStatus() {
   const [showCleaning, setShowCleaning] = useState(false);
   const [cleanClicks, setCleanClicks] = useState(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerName, setRegisterName] = useState("");
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerCode, setRegisterCode] = useState<string | null>(null);
+  const [samuraiSessionId, setSamuraiSessionId] = useState<number | null>(null);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [lastClickTime, setLastClickTime] = useState<number | null>(null);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
+  const [clickCountdown, setClickCountdown] = useState<number | null>(null);
 
   function loadPet() {
     fetch('/api/pet')
@@ -87,19 +97,19 @@ export default function PetStatus() {
     // fetch pet from server
     let mounted = true;
     loadPet();
-    
+
     // Atualizar quando a página ganha foco (usuário volta de outra página)
     const handleFocus = () => {
       if (mounted) loadPet();
     };
     window.addEventListener('focus', handleFocus);
-    
+
     // Atualizar stats automaticamente a cada minuto (ou 15s quando a dormir)
     const interval = setInterval(() => {
       if (mounted) loadPet();
     }, 15000); // 15s para ver recuperação durante o sono; loadPet atualiza isSleeping
-    
-    return () => { 
+
+    return () => {
       mounted = false;
       window.removeEventListener('focus', handleFocus);
       clearInterval(interval);
@@ -150,6 +160,71 @@ export default function PetStatus() {
       .catch(() => {});
   }, []);
 
+  // Gerenciar sessão de tempo com o samurai
+  useEffect(() => {
+    if (!hasSession || !petId || !currentPersonId) return;
+
+    // Iniciar sessão ao carregar
+    async function startSession() {
+      try {
+        const res = await fetch('/api/samurai-sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start', petId, personId: currentPersonId }),
+        });
+        const data = await res.json();
+        if (data.ok && data.session) {
+          setSamuraiSessionId(data.session.id);
+          setSessionStartTime(Date.now());
+          setLastClickTime(Date.now());
+        }
+      } catch (e) {
+        console.error('Erro ao iniciar sessão', e);
+      }
+    }
+
+    startSession();
+
+    // Cleanup ao desmontar
+    return () => {
+      if (samuraiSessionId) {
+        fetch('/api/samurai-sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'stop', sessionId: samuraiSessionId }),
+        }).catch(() => {});
+      }
+    };
+  }, [hasSession, petId, currentPersonId]);
+
+  // Timer para atualizar segundos da sessão e countdown
+  useEffect(() => {
+    if (!samuraiSessionId || !lastClickTime) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - lastClickTime;
+      const secondsSinceStart = sessionStartTime ? Math.floor((now - sessionStartTime) / 1000) : 0;
+
+      setSessionSeconds(secondsSinceStart);
+
+      // Countdown de 30 segundos para próximo clique
+      const remaining = Math.max(0, 30000 - elapsed);
+      setClickCountdown(Math.ceil(remaining / 1000));
+
+      // Se expirou, resetar sessão
+      if (elapsed > 30000) {
+        setSamuraiSessionId(null);
+        setSessionStartTime(null);
+        setLastClickTime(null);
+        setSessionSeconds(0);
+        setClickCountdown(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [samuraiSessionId, lastClickTime, sessionStartTime]);
+
   useEffect(() => {
     // keep local copy in case offline
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
@@ -192,8 +267,105 @@ export default function PetStatus() {
     }
   }
 
+  async function handleSamuraiClick() {
+    if (showCleaning) {
+      setCleanClicks((c) => {
+        const next = c + 1;
+        if (next >= 5) {
+          setShowCleaning(false);
+          setCleanClicks(0);
+          apply({ hygiene: 30, happiness: 5 }, "Limpo e cheiroso!");
+          return 0;
+        }
+        return next;
+      });
+      return;
+    }
+
+    // Registrar clique para tracking de tempo
+    if (samuraiSessionId && hasSession) {
+      try {
+        const res = await fetch('/api/samurai-sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'click', sessionId: samuraiSessionId }),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          setLastClickTime(Date.now());
+          // Pequeno aumento de felicidade por interagir
+          apply({ happiness: 1 });
+        } else if (data.error === 'session_expired') {
+          // Sessão expirou - reiniciar
+          setMessage(data.message || "Tempo esgotado! Clique para reiniciar.");
+          setTimeout(() => setMessage(null), 3000);
+
+          // Reiniciar sessão
+          if (petId && currentPersonId) {
+            const startRes = await fetch('/api/samurai-sessions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'start', petId, personId: currentPersonId }),
+            });
+            const startData = await startRes.json();
+            if (startData.ok && startData.session) {
+              setSamuraiSessionId(startData.session.id);
+              setSessionStartTime(Date.now());
+              setLastClickTime(Date.now());
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao registrar clique', e);
+      }
+    } else {
+      // Sem sessão ativa - apenas animação e felicidade
+      apply({ happiness: 5 }, "Acariciado!");
+    }
+
+    // Animação de petting
+    setIsPetting(true);
+    setTimeout(() => setIsPetting(false), 350);
+
+    // Spawn particles
+    const id = nextParticleId.current++;
+    const left = 50 + (Math.random() - 0.5) * 80;
+    const emojis = ["💖", "✨", "💫", "🌟", "🎉", "⚔️", "🗾"];
+    setParticles((p) => [...p, { id, left, emoji: emojis[Math.floor(Math.random() * emojis.length)] }]);
+    setTimeout(() => setParticles((p) => p.filter(x => x.id !== id)), 900);
+  }
+
   return (
     <div style={{ width: "100%", padding: "24px", boxSizing: "border-box", maxWidth: "1400px", margin: "0 auto" }}>
+      {!hasSession && (
+        <button
+          onClick={() => {
+            setRegisterName("");
+            setRegisterCode(null);
+            setShowRegisterModal(true);
+          }}
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 16,
+            zIndex: 1100,
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "1px solid var(--card-border)",
+            background: "var(--card-bg)",
+            color: "var(--muted)",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: "pointer",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
+            opacity: 0.92,
+          }}
+        >
+          Registar
+        </button>
+      )}
+
       <style>{`
         @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
         @keyframes floatUp { 0%{opacity:1; transform: translateY(0) scale(1)} 100%{opacity:0; transform: translateY(-120px) scale(1.1)} }
@@ -204,17 +376,18 @@ export default function PetStatus() {
       `}</style>
 
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-        {/* Coluna esquerda: Top People */}
+        {/* Coluna esquerda: Top People e Top Time */}
         <aside style={{ width: 280, flexShrink: 0 }}>
           <TopPeople />
+          <TopTime />
         </aside>
 
         {/* Coluna central: Pet e controles */}
         <div style={{ flex: "1 1 400px", minWidth: 0 }}>
-          <div style={{ 
-            background: "var(--card-bg)", 
-            borderRadius: 16, 
-            padding: 24, 
+          <div style={{
+            background: "var(--card-bg)",
+            borderRadius: 16,
+            padding: 24,
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             marginBottom: 24
           }}>
@@ -223,31 +396,7 @@ export default function PetStatus() {
                 ref={petRef}
                 role="button"
                 tabIndex={0}
-                onClick={() => {
-                  if (showCleaning) {
-                    setCleanClicks((c) => {
-                      const next = c + 1;
-                      if (next >= 5) {
-                        setShowCleaning(false);
-                        setCleanClicks(0);
-                        apply({ hygiene: 30, happiness: 5 }, "Limpo e cheiroso!");
-                        return 0;
-                      }
-                      return next;
-                    });
-                    return;
-                  }
-                  // quick pet animation + small happiness
-                  apply({ happiness: 5 }, "Acariciado!");
-                  setIsPetting(true);
-                  setTimeout(() => setIsPetting(false), 350);
-                  // spawn particles
-                  const id = nextParticleId.current++;
-                  const left = 50 + (Math.random() - 0.5) * 80;
-                  const emojis = ["💖", "✨", "💫", "🌟", "🎉", "⚔️", "🗾"];
-                  setParticles((p) => [...p, { id, left, emoji: emojis[Math.floor(Math.random() * emojis.length)] }]);
-                  setTimeout(() => setParticles((p) => p.filter(x => x.id !== id)), 900);
-                }}
+                onClick={handleSamuraiClick}
                 style={{
                   width: 280,
                   height: 350,
@@ -288,7 +437,7 @@ export default function PetStatus() {
                   animation: 'float 6s ease-in-out infinite',
                   pointerEvents: 'none'
                 }} />
-                
+
                 <div style={{
                   position: 'relative',
                   zIndex: 1,
@@ -350,8 +499,8 @@ export default function PetStatus() {
                       />
                     ));
                   })()}
-                  <img 
-                    src={petAvatarUrl || "/samurai.svg"} 
+                  <img
+                    src={petAvatarUrl || "/samurai.svg"}
                     alt="Avatar do Samurai"
                     key={petAvatarUrl || "default"}
                     onError={(e) => {
@@ -361,14 +510,14 @@ export default function PetStatus() {
                         target.src = "/samurai.svg";
                       }
                     }}
-                    style={{ 
-                      width: '100%', 
+                    style={{
+                      width: '100%',
                       height: '100%',
                       objectFit: 'contain',
                       filter: isSleeping ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.2)) brightness(0.85)' : 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))',
                       animation: isSleeping ? 'none' : 'glow 2s ease-in-out infinite',
                       transition: 'transform 200ms ease, filter 300ms ease'
-                    }} 
+                    }}
                   />
                 </div>
 
@@ -389,6 +538,16 @@ export default function PetStatus() {
                 Samurai {isSleeping && <span style={{ fontSize: 14, color: 'var(--muted)', fontWeight: 500 }}>😴 a dormir</span>}
               </div>
               <div style={{ marginTop: 4, color: 'var(--foreground)' }}>Felicidade: <strong>{stats.happiness}%</strong></div>
+
+              {/* Indicador de tempo com o samurai */}
+              {hasSession && samuraiSessionId && (
+                <div style={{ marginTop: 8, fontSize: 12, color: clickCountdown && clickCountdown <= 10 ? '#e74c3c' : 'var(--muted)', textAlign: 'center' }}>
+                  <div>⏱️ Tempo: <strong>{Math.floor(sessionSeconds / 60)}m {sessionSeconds % 60}s</strong></div>
+                  <div style={{ marginTop: 2 }}>
+                    Próximo clique: <strong style={{ color: clickCountdown && clickCountdown <= 10 ? '#e74c3c' : '#27ae60' }}>{clickCountdown}s</strong>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -396,10 +555,10 @@ export default function PetStatus() {
 
         {/* Coluna direita: Stats e ações */}
         <div style={{ flex: "1 1 320px", minWidth: 0 }}>
-          <div style={{ 
-            background: "var(--card-bg)", 
-            borderRadius: 16, 
-            padding: 24, 
+          <div style={{
+            background: "var(--card-bg)",
+            borderRadius: 16,
+            padding: 24,
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
           }}>
             <Stat label="Fome" value={stats.hunger} color="#ff6b6b" />
@@ -513,7 +672,7 @@ export default function PetStatus() {
             <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
               <button onClick={() => setShowFoodShop(true)}
                 style={btnStyle("#4CAF50")}>
-                🍎 Alimentar
+                🎒 Inventário
               </button>
 
               <button
@@ -598,6 +757,82 @@ export default function PetStatus() {
         </div>
       )}
 
+      {!hasSession && showRegisterModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1200,
+          }}
+          onClick={() => setShowRegisterModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "90%",
+              maxWidth: 420,
+              background: "var(--card-bg)",
+              color: "var(--foreground)",
+              borderRadius: 14,
+              padding: 18,
+              border: "1px solid var(--card-border)",
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: 10 }}>Registar pessoa</h3>
+            <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13 }}>
+              Introduz apenas o nome. Vais receber um código para guardar.
+            </p>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <input
+                value={registerName}
+                onChange={(e) => setRegisterName(e.target.value)}
+                placeholder="Nome"
+              />
+
+              <button
+                disabled={registerLoading || !registerName.trim()}
+                onClick={async () => {
+                  setRegisterLoading(true);
+                  setMessage(null);
+                  try {
+                    const res = await fetch("/api/register", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ name: registerName.trim() }),
+                    });
+                    const j = await res.json();
+                    if (!res.ok || !j?.ok) {
+                      setMessage(j?.error || "Erro ao registar");
+                      return;
+                    }
+                    setRegisterCode(j.person?.code ?? null);
+                  } catch {
+                    setMessage("Erro de rede ao registar");
+                  } finally {
+                    setRegisterLoading(false);
+                  }
+                }}
+                style={btnStyle(registerLoading ? "#9ca3af" : "#16a34a")}
+              >
+                {registerLoading ? "A registar..." : "Registar"}
+              </button>
+
+              {registerCode && (
+                <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "#ecfeff", color: "#155e75" }}>
+                  Código gerado: <strong style={{ letterSpacing: 1.2, fontFamily: "monospace" }}>{registerCode}</strong>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>Guarda este código para entrar depois.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Minijogos */}
       <MinigamesModal
         isOpen={showMinigames}
@@ -613,7 +848,7 @@ export default function PetStatus() {
         }}
       />
 
-      {/* Modal de Alimentação (inventário comprado) */}
+      {/* Modal de Itens (inventário comprado) */}
       {showFoodShop && (
         <div
           style={{
@@ -644,7 +879,7 @@ export default function PetStatus() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>Alimentar o Samurai</h3>
+              <h3 style={{ margin: 0 }}>Usar itens no Samurai</h3>
               <button
                 onClick={() => setShowFoodShop(false)}
                 style={{
@@ -675,6 +910,9 @@ export default function PetStatus() {
                   >
                     <div>
                       <div style={{ fontWeight: 600 }}>{item.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                        Tipo: <strong>{String(item.type ?? 'item')}</strong>
+                      </div>
                       <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                         {item.effect && typeof item.effect === 'object' && (
                           <>
@@ -699,7 +937,7 @@ export default function PetStatus() {
                             });
                             const j = await res.json();
                             if (res.ok && j?.id) {
-                              setMessage('Samurai alimentado!');
+                              setMessage(`${item.name} usado com sucesso!`);
                               await loadPet();
                               const inv = await fetch('/api/pet/inventory').then(r => r.json());
                               setFoodItems(Array.isArray(inv) ? inv : []);
@@ -723,7 +961,7 @@ export default function PetStatus() {
                           cursor: (item.quantity ?? 0) > 0 ? 'pointer' : 'not-allowed',
                         }}
                       >
-                        Dar ao Samurai
+                        Usar no Samurai
                       </button>
                     </div>
                   </div>
@@ -731,7 +969,7 @@ export default function PetStatus() {
               </div>
             ) : (
               <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 20 }}>
-                Nenhuma comida comprada no inventário. Compre itens na loja primeiro.
+                Ainda não tens itens no inventário. Compra na loja e usa aqui (comida, remédio, higiene, energia, etc.).
               </div>
             )}
           </div>

@@ -5,12 +5,14 @@ import React, { useState, useEffect } from "react";
 type Player = "X" | "O" | null;
 type Winner = "X" | "O" | "draw" | null;
 type Board = Player[];
+type Difficulty = "easy" | "medium" | "hard";
 
-export default function TicTacToe({ personId, onFinish }: { personId?: number; onFinish?: (winner: Player | null, score: number) => void }) {
+export default function TicTacToe({ personId, onFinish }: { personId?: number; onFinish?: (winner: "X" | "O" | "draw", score: number) => void }) {
   const [board, setBoard] = useState<Board>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<Winner>(null);
   const [loading, setLoading] = useState(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
 
   function calculateWinner(squares: Board): Player {
     const lines = [
@@ -32,6 +34,13 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
       .filter((idx) => idx !== -1);
     if (emptyIndexes.length === 0) return -1;
 
+    if (difficulty === "easy") {
+      // Fácil: mais aleatório
+      const pref = [4, 0, 2, 6, 8, 1, 3, 5, 7].filter((idx) => squares[idx] === null);
+      if (Math.random() < 0.45 && pref.length > 0) return pref[0];
+      return emptyIndexes[Math.floor(Math.random() * emptyIndexes.length)];
+    }
+
     // 1) Samurai tenta ganhar
     for (const idx of emptyIndexes) {
       const test = [...squares];
@@ -46,7 +55,52 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
       if (calculateWinner(test) === "X") return idx;
     }
 
-    // 3) Centro
+    // Hard: minimax (joga perfeito)
+    if (difficulty === "hard") {
+      function minimax(testBoard: Board, isSamuraiTurn: boolean): number {
+        const w = calculateWinner(testBoard);
+        if (w === "O") return 10;
+        if (w === "X") return -10;
+        if (testBoard.every((c) => c !== null)) return 0;
+
+        const empties = testBoard
+          .map((v, idx) => (v === null ? idx : -1))
+          .filter((idx) => idx !== -1);
+
+        if (isSamuraiTurn) {
+          let best = -Infinity;
+          for (const idx of empties) {
+            const next = [...testBoard];
+            next[idx] = "O";
+            best = Math.max(best, minimax(next, false));
+          }
+          return best;
+        }
+
+        let best = Infinity;
+        for (const idx of empties) {
+          const next = [...testBoard];
+          next[idx] = "X";
+          best = Math.min(best, minimax(next, true));
+        }
+        return best;
+      }
+
+      let bestMove = emptyIndexes[0];
+      let bestScore = -Infinity;
+      for (const idx of emptyIndexes) {
+        const test = [...squares];
+        test[idx] = "O";
+        const score = minimax(test, false);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = idx;
+        }
+      }
+      return bestMove;
+    }
+
+    // 3) Centro (médio)
     if (squares[4] === null) return 4;
 
     // 4) Cantos
@@ -100,20 +154,26 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
 
         return next;
       });
-    }, 350);
+    }, difficulty === "easy" ? 500 : difficulty === "medium" ? 350 : 200);
 
     return () => clearTimeout(timer);
-  }, [isXNext, board, winner]);
+  }, [isXNext, board, winner, difficulty]);
 
   async function finish() {
-    if (!winner || winner === "draw") {
-      onFinish?.(null, 0);
+    if (!winner) {
+      return;
+    }
+
+    if (winner === "draw") {
+      onFinish?.("draw", 0);
       return;
     }
     setLoading(true);
     try {
-      const score = winner === "X" ? 10 : 2; // vitória: 10 | derrota: 2
+      const outcome = winner === "X" ? "win" : "lose";
+      const score = winner === "X" ? 1 : 0; // score de registo (moedas são decididas no backend)
       const payload: any = { game: 'tictactoe', score };
+      payload.outcome = outcome;
       if (personId) payload.personId = personId;
       const res = await fetch('/api/games', {
         method: 'POST',
@@ -122,19 +182,19 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
       });
       const j = await res.json();
       if (j?.ok) {
-        onFinish?.(winner as Player, j.coinsAwarded || 0);
+        onFinish?.(winner, j.coinsAwarded || 0);
       } else {
-        onFinish?.(winner as Player, 0);
+        onFinish?.(winner, 0);
       }
     } catch (e) {
-      onFinish?.(winner as Player, 0);
+      onFinish?.(winner, 0);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (winner && winner !== "draw") {
+    if (winner) {
       finish();
     }
   }, [winner]);
@@ -176,8 +236,21 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
   return (
     <div style={{ padding: 16, borderRadius: 8, background: 'var(--card-bg)', textAlign: 'center' }}>
       <h4 style={{ margin: '0 0 12px 0' }}>Jogo do Galo — Tu vs Samurai</h4>
+      <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
+        <span style={{ color: 'var(--muted)', fontSize: 13 }}>Dificuldade:</span>
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+          disabled={!!winner || loading || !isXNext}
+          style={{ borderRadius: 8, padding: '6px 8px' }}
+        >
+          <option value="easy">Fácil</option>
+          <option value="medium">Médio</option>
+          <option value="hard">Difícil</option>
+        </select>
+      </div>
       <div style={{ marginBottom: 12, color: 'var(--muted)' }}>{status}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 12, justifyContent: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 60px)', gap: 4, marginBottom: 12, justifyContent: 'center' }}>
         {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => renderSquare(i))}
       </div>
       {winner && (

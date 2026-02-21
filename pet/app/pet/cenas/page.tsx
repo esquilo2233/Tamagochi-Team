@@ -28,6 +28,19 @@ export default function CenasPage() {
     lowAttentionEndHour: 9,
     lowAttentionDecayMultiplier: 0.08,
   });
+  const [rewardsConfig, setRewardsConfig] = useState({
+    clickrushWinCoins: 10,
+    clickrushLoseCoins: 3,
+    clickrushWinScoreThreshold: 20,
+    tictactoeWinCoins: 10,
+    tictactoeLoseCoins: 2,
+    chessWinCoins: 30,
+    chessLoseCoins: 6,
+    connect4WinCoins: 18,
+    connect4LoseCoins: 6,
+    companionTickMinutes: 5,
+    companionCoinsPerTick: 1,
+  });
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -54,6 +67,13 @@ export default function CenasPage() {
       .then((r) => r.json())
       .then((j) => {
         if (j?.ok && j?.config) setDecayConfig((c) => ({ ...c, ...j.config }));
+      })
+      .catch(() => {});
+
+    fetch("/api/settings/rewards")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.ok && j?.config) setRewardsConfig((c) => ({ ...c, ...j.config }));
       })
       .catch(() => {});
   }, [hasAccess]);
@@ -119,6 +139,30 @@ export default function CenasPage() {
       setTimeout(() => setSuccess(false), 2200);
     } catch {
       setError("Erro de ligação ao guardar configuração");
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
+  async function saveRewardsSettings() {
+    if (!hasAccess) return;
+    setSavingConfig(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/settings/rewards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rewardsConfig),
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) {
+        setError(j?.error ?? "Erro ao guardar configuração de moedas");
+        return;
+      }
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2200);
+    } catch {
+      setError("Erro de ligação ao guardar configuração de moedas");
     } finally {
       setSavingConfig(false);
     }
@@ -308,6 +352,41 @@ export default function CenasPage() {
             style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: savingConfig ? "#9ca3af" : "#16a34a", color: "white", cursor: savingConfig ? "not-allowed" : "pointer", fontWeight: 600 }}
           >
             {savingConfig ? "A guardar..." : "Guardar decadência"}
+          </button>
+        </div>
+      </section>
+
+      <section style={{ marginTop: 28, padding: 16, borderRadius: 12, background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 22 }}>Configuração de Moedas (Minijogos + Companhia)</h2>
+        <p style={{ color: "var(--muted)", marginTop: 0 }}>
+          Controla quantas moedas são dadas ao ganhar/perder cada minijogo e também os ganhos na companhia.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <label style={{ display: "grid", gap: 4 }}><span>Click Rush: moedas vitória</span><input type="number" min={0} value={rewardsConfig.clickrushWinCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, clickrushWinCoins: Number(e.target.value) })} /></label>
+          <label style={{ display: "grid", gap: 4 }}><span>Click Rush: moedas derrota</span><input type="number" min={0} value={rewardsConfig.clickrushLoseCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, clickrushLoseCoins: Number(e.target.value) })} /></label>
+          <label style={{ display: "grid", gap: 4, gridColumn: "1 / span 2" }}><span>Click Rush: cliques para considerar vitória</span><input type="number" min={0} value={rewardsConfig.clickrushWinScoreThreshold} onChange={(e) => setRewardsConfig({ ...rewardsConfig, clickrushWinScoreThreshold: Number(e.target.value) })} /></label>
+
+          <label style={{ display: "grid", gap: 4 }}><span>Jogo do Galo: moedas vitória</span><input type="number" min={0} value={rewardsConfig.tictactoeWinCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, tictactoeWinCoins: Number(e.target.value) })} /></label>
+          <label style={{ display: "grid", gap: 4 }}><span>Jogo do Galo: moedas derrota</span><input type="number" min={0} value={rewardsConfig.tictactoeLoseCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, tictactoeLoseCoins: Number(e.target.value) })} /></label>
+
+          <label style={{ display: "grid", gap: 4 }}><span>Xadrez: moedas vitória</span><input type="number" min={0} value={rewardsConfig.chessWinCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, chessWinCoins: Number(e.target.value) })} /></label>
+          <label style={{ display: "grid", gap: 4 }}><span>Xadrez: moedas derrota</span><input type="number" min={0} value={rewardsConfig.chessLoseCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, chessLoseCoins: Number(e.target.value) })} /></label>
+
+          <label style={{ display: "grid", gap: 4 }}><span>4 em Linha: moedas vitória</span><input type="number" min={0} value={rewardsConfig.connect4WinCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, connect4WinCoins: Number(e.target.value) })} /></label>
+          <label style={{ display: "grid", gap: 4 }}><span>4 em Linha: moedas derrota</span><input type="number" min={0} value={rewardsConfig.connect4LoseCoins} onChange={(e) => setRewardsConfig({ ...rewardsConfig, connect4LoseCoins: Number(e.target.value) })} /></label>
+
+          <label style={{ display: "grid", gap: 4 }}><span>Companhia: minutos por tick</span><input type="number" min={1} value={rewardsConfig.companionTickMinutes} onChange={(e) => setRewardsConfig({ ...rewardsConfig, companionTickMinutes: Number(e.target.value) })} /></label>
+          <label style={{ display: "grid", gap: 4 }}><span>Companhia: moedas por tick</span><input type="number" min={0} value={rewardsConfig.companionCoinsPerTick} onChange={(e) => setRewardsConfig({ ...rewardsConfig, companionCoinsPerTick: Number(e.target.value) })} /></label>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+          <button
+            onClick={saveRewardsSettings}
+            disabled={savingConfig}
+            style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: savingConfig ? "#9ca3af" : "#2563eb", color: "white", cursor: savingConfig ? "not-allowed" : "pointer", fontWeight: 600 }}
+          >
+            {savingConfig ? "A guardar..." : "Guardar moedas"}
           </button>
         </div>
       </section>

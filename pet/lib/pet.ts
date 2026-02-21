@@ -11,6 +11,7 @@ type PetLike = {
 };
 
 const SYSTEM_DECAY_CONFIG_NAME = "__system_decay_config__";
+const SYSTEM_REWARDS_CONFIG_NAME = "__system_rewards_config__";
 
 type DecayConfig = {
   hungerDecayPerMinute: number;
@@ -26,6 +27,20 @@ type DecayConfig = {
   lowAttentionDecayMultiplier: number;
 };
 
+export type RewardsConfig = {
+  clickrushWinCoins: number;
+  clickrushLoseCoins: number;
+  clickrushWinScoreThreshold: number;
+  tictactoeWinCoins: number;
+  tictactoeLoseCoins: number;
+  chessWinCoins: number;
+  chessLoseCoins: number;
+  connect4WinCoins: number;
+  connect4LoseCoins: number;
+  companionTickMinutes: number;
+  companionCoinsPerTick: number;
+};
+
 export const DEFAULT_DECAY_CONFIG: DecayConfig = {
   hungerDecayPerMinute: 0.5,
   energyDecayPerMinute: 0.3,
@@ -38,6 +53,20 @@ export const DEFAULT_DECAY_CONFIG: DecayConfig = {
   lowAttentionStartHour: 16,
   lowAttentionEndHour: 9,
   lowAttentionDecayMultiplier: 0.08,
+};
+
+export const DEFAULT_REWARDS_CONFIG: RewardsConfig = {
+  clickrushWinCoins: 10,
+  clickrushLoseCoins: 3,
+  clickrushWinScoreThreshold: 20,
+  tictactoeWinCoins: 10,
+  tictactoeLoseCoins: 2,
+  chessWinCoins: 30,
+  chessLoseCoins: 6,
+  connect4WinCoins: 18,
+  connect4LoseCoins: 6,
+  companionTickMinutes: 5,
+  companionCoinsPerTick: 1,
 };
 
 function clampHour(v: number, fallback: number) {
@@ -65,6 +94,28 @@ function parseDecayConfig(raw: unknown): DecayConfig {
     lowAttentionStartHour: clampHour(Number(source.lowAttentionStartHour), DEFAULT_DECAY_CONFIG.lowAttentionStartHour),
     lowAttentionEndHour: clampHour(Number(source.lowAttentionEndHour), DEFAULT_DECAY_CONFIG.lowAttentionEndHour),
     lowAttentionDecayMultiplier: clampNonNegative(Number(source.lowAttentionDecayMultiplier), DEFAULT_DECAY_CONFIG.lowAttentionDecayMultiplier),
+  };
+}
+
+function clampMinOne(v: number, fallback: number) {
+  if (!Number.isFinite(v)) return fallback;
+  return Math.max(1, Math.round(v));
+}
+
+function parseRewardsConfig(raw: unknown): RewardsConfig {
+  const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    clickrushWinCoins: clampNonNegative(Number(source.clickrushWinCoins), DEFAULT_REWARDS_CONFIG.clickrushWinCoins),
+    clickrushLoseCoins: clampNonNegative(Number(source.clickrushLoseCoins), DEFAULT_REWARDS_CONFIG.clickrushLoseCoins),
+    clickrushWinScoreThreshold: clampNonNegative(Number(source.clickrushWinScoreThreshold), DEFAULT_REWARDS_CONFIG.clickrushWinScoreThreshold),
+    tictactoeWinCoins: clampNonNegative(Number(source.tictactoeWinCoins), DEFAULT_REWARDS_CONFIG.tictactoeWinCoins),
+    tictactoeLoseCoins: clampNonNegative(Number(source.tictactoeLoseCoins), DEFAULT_REWARDS_CONFIG.tictactoeLoseCoins),
+    chessWinCoins: clampNonNegative(Number(source.chessWinCoins), DEFAULT_REWARDS_CONFIG.chessWinCoins),
+    chessLoseCoins: clampNonNegative(Number(source.chessLoseCoins), DEFAULT_REWARDS_CONFIG.chessLoseCoins),
+    connect4WinCoins: clampNonNegative(Number(source.connect4WinCoins), DEFAULT_REWARDS_CONFIG.connect4WinCoins),
+    connect4LoseCoins: clampNonNegative(Number(source.connect4LoseCoins), DEFAULT_REWARDS_CONFIG.connect4LoseCoins),
+    companionTickMinutes: clampMinOne(Number(source.companionTickMinutes), DEFAULT_REWARDS_CONFIG.companionTickMinutes),
+    companionCoinsPerTick: clampNonNegative(Number(source.companionCoinsPerTick), DEFAULT_REWARDS_CONFIG.companionCoinsPerTick),
   };
 }
 
@@ -98,6 +149,40 @@ export async function saveDecayConfig(input: Partial<DecayConfig>) {
     await prisma.item.create({
       data: {
         name: SYSTEM_DECAY_CONFIG_NAME,
+        type: "__system",
+        price: 0,
+        effect: merged,
+      },
+    });
+  }
+
+  return merged;
+}
+
+export async function getRewardsConfig(): Promise<RewardsConfig> {
+  const systemItem = await prisma.item.findFirst({
+    where: { type: "__system", name: SYSTEM_REWARDS_CONFIG_NAME },
+  });
+  return parseRewardsConfig(systemItem?.effect ?? DEFAULT_REWARDS_CONFIG);
+}
+
+export async function saveRewardsConfig(input: Partial<RewardsConfig>) {
+  const current = await getRewardsConfig();
+  const merged = parseRewardsConfig({ ...current, ...input });
+
+  const existing = await prisma.item.findFirst({
+    where: { type: "__system", name: SYSTEM_REWARDS_CONFIG_NAME },
+  });
+
+  if (existing) {
+    await prisma.item.update({
+      where: { id: existing.id },
+      data: { effect: merged, price: 0 },
+    });
+  } else {
+    await prisma.item.create({
+      data: {
+        name: SYSTEM_REWARDS_CONFIG_NAME,
         type: "__system",
         price: 0,
         effect: merged,
@@ -442,6 +527,7 @@ export async function stopCompanionSession(sessionId: number) {
 
 export async function processCompanionSessions() {
   const now = new Date();
+  const rewardsConfig = await getRewardsConfig();
   const sessions = await prisma.companionSession.findMany({ 
     where: { active: true },
     include: { person: true },
@@ -453,11 +539,11 @@ export async function processCompanionSessions() {
   for (const s of sessions) {
     const last = s.lastTickAt ?? s.startedAt ?? new Date();
     const minutesPassed = Math.floor((now.getTime() - last.getTime()) / (1000 * 60));
-    const tickInterval = 5; // minutos por tick (moedas a cada 5 minutos)
+    const tickInterval = rewardsConfig.companionTickMinutes;
     const ticks = Math.floor(minutesPassed / tickInterval);
     if (ticks <= 0) continue;
 
-    const coinsPerTick = 1; // 1 moeda a cada 5 minutos
+    const coinsPerTick = rewardsConfig.companionCoinsPerTick;
     const totalCoins = ticks * coinsPerTick;
 
     // Enquanto faz companhia:

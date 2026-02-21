@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import ClickRush from "./ClickRush";
 import TicTacToe from "./TicTacToe";
+import ChessGame from "./ChessGame";
+import ConnectFour from "./ConnectFour";
+import Link from "next/link";
 
-type GameType = "clickrush" | "tictactoe" | null;
+type GameType = "clickrush" | "tictactoe" | "chess" | "connect4" | null;
 
 export default function MinigamesModal({
   isOpen,
@@ -98,6 +101,53 @@ export default function MinigamesModal({
             >
               ⭕ Jogo do Galo
             </button>
+            <button
+              onClick={() => setActiveGame("chess")}
+              style={{
+                padding: "16px",
+                borderRadius: 12,
+                background: "var(--accent)",
+                color: "white",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 16,
+                fontWeight: 600,
+              }}
+            >
+              ♟️ Xadrez (com dificuldade)
+            </button>
+            <button
+              onClick={() => setActiveGame("connect4")}
+              style={{
+                padding: "16px",
+                borderRadius: 12,
+                background: "var(--accent)",
+                color: "white",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 16,
+                fontWeight: 600,
+              }}
+            >
+              🟡 4 em Linha
+            </button>
+            <Link href="/team-play" target="_blank" style={{ textDecoration: "none" }}>
+              <button
+                style={{
+                  width: "100%",
+                  padding: "16px",
+                  borderRadius: 12,
+                  background: "#2d8cff",
+                  color: "white",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 16,
+                  fontWeight: 600,
+                }}
+              >
+                🤝 Convidar por link (Team Building)
+              </button>
+            </Link>
           </div>
         ) : (
           <div>
@@ -126,11 +176,24 @@ export default function MinigamesModal({
             {activeGame === "tictactoe" && (
               <TicTacToe
                 personId={personId}
-                onFinish={(winner, coins) => {
-                  if (winner) {
-                    setActiveGame(null);
-                    onGameFinish?.();
-                  }
+                onFinish={() => {
+                  onGameFinish?.();
+                }}
+              />
+            )}
+            {activeGame === "chess" && (
+              <ChessGame
+                personId={personId}
+                onFinish={() => {
+                  onGameFinish?.();
+                }}
+              />
+            )}
+            {activeGame === "connect4" && (
+              <ConnectFour
+                personId={personId}
+                onFinish={() => {
+                  onGameFinish?.();
                 }}
               />
             )}

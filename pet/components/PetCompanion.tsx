@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 export default function PetCompanion({ code, onClose }: { code: string; onClose: () => void }) {
   const [pet, setPet] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
-  const [samuraiSessionId, setSamuraiSessionId] = useState<number | null>(null);
   const [coinsEarned, setCoinsEarned] = useState(0);
   const [timeSeconds, setTimeSeconds] = useState(0);
 
@@ -25,9 +24,6 @@ export default function PetCompanion({ code, onClose }: { code: string; onClose:
         const data = await res.json();
         if (data.ok) {
           setSession(data.session);
-          if (data.samuraiSessionId) {
-            setSamuraiSessionId(data.samuraiSessionId);
-          }
         }
       } catch (e) {
         console.error("Erro ao iniciar companhia", e);
@@ -59,31 +55,22 @@ export default function PetCompanion({ code, onClose }: { code: string; onClose:
         const sRes = await fetch(`/api/companion?code=${code}`);
         const sessions = await sRes.json();
         if (sessions && sessions.length > 0) {
-          setCoinsEarned(sessions[0].coinsEarned || 0);
-        }
+          const currentSession = sessions[0];
+          setCoinsEarned(currentSession.coinsEarned || 0);
 
-        // Atualizar tempo da sessão samurai
-        if (samuraiSessionId) {
-          const timeRes = await fetch(`/api/samurai-sessions`);
-          const allSessions = await timeRes.json();
-          const mySession = Array.isArray(allSessions)
-            ? allSessions.find((s: any) => s.id === samuraiSessionId)
-            : null;
-          if (mySession) {
-            // Calcular tempo desde o startedAt
-            const started = new Date(mySession.startedAt).getTime();
-            const now = Date.now();
-            const seconds = Math.floor((now - started) / 1000);
-            setTimeSeconds(seconds);
-          }
+          // Calcular tempo desde o startedAt
+          const started = new Date(currentSession.startedAt).getTime();
+          const now = Date.now();
+          const seconds = Math.floor((now - started) / 1000);
+          setTimeSeconds(seconds);
         }
       } catch (e) {}
     }
 
     updateData();
-    const interval = setInterval(updateData, 5000); // atualizar a cada 5s
+    const interval = setInterval(updateData, 1000); // atualizar a cada segundo
     return () => clearInterval(interval);
-  }, [session, code, samuraiSessionId]);
+  }, [session, code]);
 
   async function handleStop() {
     if (!session) return;
@@ -93,15 +80,6 @@ export default function PetCompanion({ code, onClose }: { code: string; onClose:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "stop", sessionId: session.id }),
       });
-
-      // Parar sessão de tracking de tempo
-      if (samuraiSessionId) {
-        await fetch("/api/samurai-sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "stop", sessionId: samuraiSessionId }),
-        });
-      }
     } catch (e) {}
     onClose();
   }

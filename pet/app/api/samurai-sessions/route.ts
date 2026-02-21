@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 
-const CLICK_INTERVAL_MS = 30000; // 30 segundos - tempo máximo entre cliques para manter sessão ativa
-const TIME_REWARD_MS = 1000; // 1 segundo de tempo por clique válido
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -42,69 +39,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, session, isNew: true });
     }
 
-    if (body.action === "click") {
-      if (!body.sessionId) {
-        return NextResponse.json({ ok: false, error: "missing sessionId" }, { status: 400 });
-      }
-
-      const session = await prisma.samuraiSession.findUnique({
-        where: { id: body.sessionId },
-        include: { person: true },
-      });
-
-      if (!session || !session.active) {
-        return NextResponse.json({ ok: false, error: "session not found or inactive" }, { status: 404 });
-      }
-
-      const now = new Date();
-      const lastClick = session.lastClickAt;
-      const elapsed = now.getTime() - lastClick.getTime();
-
-      // Verificar se passou do tempo máximo entre cliques (anti-cheating)
-      if (elapsed > CLICK_INTERVAL_MS) {
-        // Sessão expirou - desativar e exigir novo clique inicial
-        await prisma.samuraiSession.update({
-          where: { id: body.sessionId },
-          data: { active: false },
-        });
-        return NextResponse.json({
-          ok: false,
-          error: "session_expired",
-          message: "Tempo esgotado! Clique no samurai para reiniciar."
-        }, { status: 400 });
-      }
-
-      // Calcular tempo ganho desde o último clique (máximo de 1 segundo por clique)
-      const timeEarned = Math.min(elapsed, TIME_REWARD_MS);
-      const secondsEarned = timeEarned / 1000;
-
-      // Atualizar sessão
-      const updatedSession = await prisma.samuraiSession.update({
-        where: { id: body.sessionId },
-        data: {
-          lastClickAt: now,
-          totalSeconds: session.totalSeconds + secondsEarned,
-        },
-      });
-
-      // Atualizar tempo total da pessoa
-      await prisma.person.update({
-        where: { id: session.personId },
-        data: {
-          totalTimeSeconds: {
-            increment: Math.floor(secondsEarned),
-          },
-        },
-      });
-
-      return NextResponse.json({
-        ok: true,
-        session: updatedSession,
-        secondsEarned,
-        totalSeconds: updatedSession.totalSeconds + secondsEarned,
-      });
-    }
-
     if (body.action === "stop") {
       if (!body.sessionId) {
         return NextResponse.json({ ok: false, error: "missing sessionId" }, { status: 400 });
@@ -120,21 +54,17 @@ export async function POST(req: Request) {
       }
 
       // Calcular tempo total baseado no startedAt até agora
-      // (para sessões de companion que não usam o sistema de cliques)
       const now = new Date();
       const started = session.startedAt;
       const totalSessionSeconds = Math.floor((now.getTime() - started.getTime()) / 1000);
 
-      // Somar o tempo já registrado com o tempo adicional
-      const finalSeconds = Math.max(session.totalSeconds || 0, totalSessionSeconds);
-
       // Atualizar tempo total da pessoa
-      if (finalSeconds > 0) {
+      if (totalSessionSeconds > 0) {
         await prisma.person.update({
           where: { id: session.personId },
           data: {
             totalTimeSeconds: {
-              increment: finalSeconds,
+              increment: totalSessionSeconds,
             },
           },
         });
@@ -144,7 +74,7 @@ export async function POST(req: Request) {
         where: { id: body.sessionId },
         data: {
           active: false,
-          totalSeconds: finalSeconds,
+          totalSeconds: totalSessionSeconds,
         },
       });
 

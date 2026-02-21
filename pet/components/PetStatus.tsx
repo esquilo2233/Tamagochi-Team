@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import TopPeople from "./TopPeople";
-import TopTime from "./TopTime";
 import PetCompanion from "./PetCompanion";
 import MinigamesModal from "./MinigamesModal";
 import Link from "next/link";
@@ -49,11 +48,6 @@ export default function PetStatus() {
   const [registerName, setRegisterName] = useState("");
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerCode, setRegisterCode] = useState<string | null>(null);
-  const [samuraiSessionId, setSamuraiSessionId] = useState<number | null>(null);
-  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
-  const [lastClickTime, setLastClickTime] = useState<number | null>(null);
-  const [sessionSeconds, setSessionSeconds] = useState(0);
-  const [clickCountdown, setClickCountdown] = useState<number | null>(null);
 
   function loadPet() {
     fetch('/api/pet')
@@ -160,71 +154,6 @@ export default function PetStatus() {
       .catch(() => {});
   }, []);
 
-  // Gerenciar sessão de tempo com o samurai
-  useEffect(() => {
-    if (!hasSession || !petId || !currentPersonId) return;
-
-    // Iniciar sessão ao carregar
-    async function startSession() {
-      try {
-        const res = await fetch('/api/samurai-sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'start', petId, personId: currentPersonId }),
-        });
-        const data = await res.json();
-        if (data.ok && data.session) {
-          setSamuraiSessionId(data.session.id);
-          setSessionStartTime(Date.now());
-          setLastClickTime(Date.now());
-        }
-      } catch (e) {
-        console.error('Erro ao iniciar sessão', e);
-      }
-    }
-
-    startSession();
-
-    // Cleanup ao desmontar
-    return () => {
-      if (samuraiSessionId) {
-        fetch('/api/samurai-sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'stop', sessionId: samuraiSessionId }),
-        }).catch(() => {});
-      }
-    };
-  }, [hasSession, petId, currentPersonId]);
-
-  // Timer para atualizar segundos da sessão e countdown
-  useEffect(() => {
-    if (!samuraiSessionId || !lastClickTime) return;
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const elapsed = now - lastClickTime;
-      const secondsSinceStart = sessionStartTime ? Math.floor((now - sessionStartTime) / 1000) : 0;
-
-      setSessionSeconds(secondsSinceStart);
-
-      // Countdown de 30 segundos para próximo clique
-      const remaining = Math.max(0, 30000 - elapsed);
-      setClickCountdown(Math.ceil(remaining / 1000));
-
-      // Se expirou, resetar sessão
-      if (elapsed > 30000) {
-        setSamuraiSessionId(null);
-        setSessionStartTime(null);
-        setLastClickTime(null);
-        setSessionSeconds(0);
-        setClickCountdown(null);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [samuraiSessionId, lastClickTime, sessionStartTime]);
-
   useEffect(() => {
     // keep local copy in case offline
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
@@ -282,47 +211,8 @@ export default function PetStatus() {
       return;
     }
 
-    // Registrar clique para tracking de tempo
-    if (samuraiSessionId && hasSession) {
-      try {
-        const res = await fetch('/api/samurai-sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'click', sessionId: samuraiSessionId }),
-        });
-        const data = await res.json();
-
-        if (data.ok) {
-          setLastClickTime(Date.now());
-          // Pequeno aumento de felicidade por interagir
-          apply({ happiness: 1 });
-        } else if (data.error === 'session_expired') {
-          // Sessão expirou - reiniciar
-          setMessage(data.message || "Tempo esgotado! Clique para reiniciar.");
-          setTimeout(() => setMessage(null), 3000);
-
-          // Reiniciar sessão
-          if (petId && currentPersonId) {
-            const startRes = await fetch('/api/samurai-sessions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'start', petId, personId: currentPersonId }),
-            });
-            const startData = await startRes.json();
-            if (startData.ok && startData.session) {
-              setSamuraiSessionId(startData.session.id);
-              setSessionStartTime(Date.now());
-              setLastClickTime(Date.now());
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Erro ao registrar clique', e);
-      }
-    } else {
-      // Sem sessão ativa - apenas animação e felicidade
-      apply({ happiness: 5 }, "Acariciado!");
-    }
+    // Apenas animação e felicidade ao clicar
+    apply({ happiness: 5 }, "Acariciado!");
 
     // Animação de petting
     setIsPetting(true);
@@ -376,10 +266,9 @@ export default function PetStatus() {
       `}</style>
 
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-        {/* Coluna esquerda: Top People e Top Time */}
+        {/* Coluna esquerda: Top People */}
         <aside style={{ width: 280, flexShrink: 0 }}>
           <TopPeople />
-          <TopTime />
         </aside>
 
         {/* Coluna central: Pet e controles */}
@@ -538,16 +427,6 @@ export default function PetStatus() {
                 Samurai {isSleeping && <span style={{ fontSize: 14, color: 'var(--muted)', fontWeight: 500 }}>😴 a dormir</span>}
               </div>
               <div style={{ marginTop: 4, color: 'var(--foreground)' }}>Felicidade: <strong>{stats.happiness}%</strong></div>
-
-              {/* Indicador de tempo com o samurai */}
-              {hasSession && samuraiSessionId && (
-                <div style={{ marginTop: 8, fontSize: 12, color: clickCountdown && clickCountdown <= 10 ? '#e74c3c' : 'var(--muted)', textAlign: 'center' }}>
-                  <div>⏱️ Tempo: <strong>{Math.floor(sessionSeconds / 60)}m {sessionSeconds % 60}s</strong></div>
-                  <div style={{ marginTop: 2 }}>
-                    Próximo clique: <strong style={{ color: clickCountdown && clickCountdown <= 10 ? '#e74c3c' : '#27ae60' }}>{clickCountdown}s</strong>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

@@ -338,7 +338,7 @@ export async function updatePetState() {
   const lowAttentionDecayMultiplier = isLowAttentionWindow ? decayConfig.lowAttentionDecayMultiplier : 1;
   const last = pet.lastUpdate ?? new Date();
   const minutesPassed = (now.getTime() - last.getTime()) / (1000 * 60);
-  
+
   if (minutesPassed < 1) return pet;
 
   const sleepStartedAt = (pet as { sleepStartedAt?: Date | null }).sleepStartedAt;
@@ -519,6 +519,32 @@ export async function startCompanionSession(code: string) {
 }
 
 export async function stopCompanionSession(sessionId: number) {
+  const session = await prisma.companionSession.findUnique({
+    where: { id: sessionId },
+    include: { person: true },
+  });
+
+  if (!session) {
+    throw new Error("Sessão não encontrada");
+  }
+
+  // Calcular tempo total da sessão
+  const now = new Date();
+  const started = session.startedAt;
+  const totalSessionSeconds = Math.floor((now.getTime() - started.getTime()) / 1000);
+
+  // Atualizar tempo total da pessoa
+  if (totalSessionSeconds > 0) {
+    await prisma.person.update({
+      where: { id: session.personId },
+      data: {
+        totalTimeSeconds: {
+          increment: totalSessionSeconds,
+        },
+      },
+    });
+  }
+
   return prisma.companionSession.update({
     where: { id: sessionId },
     data: { active: false },
@@ -528,7 +554,7 @@ export async function stopCompanionSession(sessionId: number) {
 export async function processCompanionSessions() {
   const now = new Date();
   const rewardsConfig = await getRewardsConfig();
-  const sessions = await prisma.companionSession.findMany({ 
+  const sessions = await prisma.companionSession.findMany({
     where: { active: true },
     include: { person: true },
   });
@@ -582,7 +608,7 @@ export async function processCompanionSessions() {
 
     if (totalCoins > 0) {
       await awardCoinsToPerson(s.personId, totalCoins);
-      
+
       // Atualizar sessão
       const advanced = new Date(last.getTime() + ticks * tickInterval * 60 * 1000);
       await prisma.companionSession.update({

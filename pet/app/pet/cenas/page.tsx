@@ -15,6 +15,7 @@ export default function CenasPage() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [decayConfig, setDecayConfig] = useState({
     hungerDecayPerMinute: 0.5,
     energyDecayPerMinute: 0.3,
@@ -168,6 +169,30 @@ export default function CenasPage() {
     }
   }
 
+  async function handleResetStats() {
+    if (!hasAccess) return;
+    if (!confirm("Tens a certeza que queres resetar todos os stats do Samurai?")) return;
+
+    setResetting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/pet/reset", {
+        method: "POST",
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) {
+        setError(j?.error ?? "Erro ao resetar stats");
+        return;
+      }
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2200);
+    } catch {
+      setError("Erro de ligação ao resetar stats");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
       {checkingAccess ? (
@@ -314,6 +339,28 @@ export default function CenasPage() {
           </div>
         </div>
       )}
+
+      <section style={{ marginTop: 28, padding: 16, borderRadius: 12, background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 22 }}>Resetar Stats do Samurai</h2>
+        <p style={{ color: "var(--muted)", marginTop: 0 }}>
+          Reseta todos os stats do Samurai para 100 (Fome, Energia, Felicidade, Higiene, Vida).
+        </p>
+        <button
+          onClick={handleResetStats}
+          disabled={resetting || !hasAccess}
+          style={{
+            padding: "10px 20px",
+            borderRadius: 8,
+            background: resetting || !hasAccess ? "#9ca3af" : "#dc2626",
+            color: "white",
+            border: "none",
+            cursor: resetting || !hasAccess ? "not-allowed" : "pointer",
+            fontWeight: 600,
+          }}
+        >
+          {resetting ? "A resetar..." : "🔄 Resetar Stats do Samurai"}
+        </button>
+      </section>
 
       <section style={{ marginTop: 28, padding: 16, borderRadius: 12, background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
         <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 22 }}>Configuração de Decadência</h2>

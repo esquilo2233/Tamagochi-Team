@@ -25,7 +25,43 @@ export default function TopPeople({ limit = 5 }: { limit?: number }) {
     <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <strong>Top Moedas</strong>
-        <button onClick={load} style={{ padding: '4px 8px', borderRadius: 6, background: '#dfe6e9', border: 'none' }}>⟳</button>
+        <button
+          onClick={load}
+          disabled={loading}
+          aria-label="Atualizar ranking"
+          title="Atualizar ranking"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 999,
+            background: loading ? '#cfd8dc' : '#dfe6e9',
+            border: '1px solid #b2bec3',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: loading ? 'wait' : 'pointer',
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              color: '#2d3436',
+              transform: loading ? 'rotate(360deg)' : 'none',
+              transition: loading ? 'transform 0.8s linear' : 'transform 0.2s ease',
+            }}
+          >
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <polyline points="21 3 21 9 15 9" />
+          </svg>
+        </button>
       </div>
 
       {loading && <div style={{ color: 'var(--muted)' }}>Carregando...</div>}

@@ -109,7 +109,7 @@ export default function PetCompanion({ code, onClose }: { code: string; onClose:
       >
         <img
           src={avatarUrl}
-          alt="Pet"
+          alt="Samurai"
           style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />
       </div>

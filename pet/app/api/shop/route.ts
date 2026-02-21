@@ -3,7 +3,7 @@ import { prisma } from "../../../lib/prisma";
 import { purchaseItem } from "../../../lib/pet";
 
 export async function GET() {
-  const items = await prisma.item.findMany({ orderBy: { createdAt: 'asc' } });
+  const items = await prisma.item.findMany({ where: { type: { not: '__system' } }, orderBy: { createdAt: 'asc' } });
   return NextResponse.json(items);
 }
 
@@ -21,4 +21,3 @@ export async function POST(req: Request) {
   }
 }
 
-export async function PUT() { return NextResponse.json({ ok: false }); }

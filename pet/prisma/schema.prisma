@@ -7,17 +7,18 @@ datasource db {
 }
 
 model Pet {
-  id           Int           @id @default(autoincrement())
-  name         String?       @db.VarChar(100)
-  hunger       Int           @default(100)
-  energy       Int           @default(100)
-  happiness    Int           @default(100)
-  hygiene      Int           @default(100)
-  life         Int           @default(100)
-  appearance   String?
-  lastUpdate   DateTime      @default(now())
-  playCooldown DateTime?
-  workSessions WorkSession[] @relation("PetWorkSessions")
+  id             Int           @id @default(autoincrement())
+  name           String?       @db.VarChar(100)
+  hunger         Int           @default(100)
+  energy         Int           @default(100)
+  happiness      Int           @default(100)
+  hygiene        Int           @default(100)
+  life           Int           @default(100)
+  appearance     String?
+  lastUpdate     DateTime      @default(now())
+  playCooldown   DateTime?
+  sleepStartedAt DateTime?
+  workSessions   WorkSession[] @relation("PetWorkSessions")
 
   @@map("pets")
 }

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 export default function PeopleManager() {
   const [people, setPeople] = useState<Array<any>>([]);
   const [name, setName] = useState("");
+  const [role, setRole] = useState("user");
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -24,9 +25,10 @@ export default function PeopleManager() {
     if (!name.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/people', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      const res = await fetch('/api/people', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, role }) });
       const j = await res.json();
       setName('');
+      setRole('user');
       setNotice('Pessoa adicionada');
       await load();
     } catch (e) {
@@ -35,9 +37,22 @@ export default function PeopleManager() {
   }
 
   async function removePerson(id: number) {
-    // simple delete endpoint not implemented server-side; fallback: show notice
-    setNotice('Remover não implementado (faça manualmente no DB)');
-    setTimeout(() => setNotice(null), 2200);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/people?id=${id}`, { method: 'DELETE' });
+      const j = await res.json();
+      if (j?.ok) {
+        setNotice('Pessoa eliminada');
+        await load();
+      } else {
+        setNotice('Erro ao eliminar: ' + (j?.error || 'erro'));
+      }
+    } catch (e) {
+      setNotice('Erro de rede ao eliminar');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotice(null), 2200);
+    }
   }
 
   return (
@@ -47,6 +62,11 @@ export default function PeopleManager() {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Nome da pessoa" style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #ddd' }} />
+        <select value={role} onChange={(e) => setRole(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd' }}>
+          <option value="user">user</option>
+          <option value="gestor">gestor</option>
+          <option value="admin">admin</option>
+        </select>
         <button onClick={createPerson} disabled={loading} style={{ padding: '8px 12px', borderRadius: 6, background: '#2ecc71', color: 'white', border: 'none' }}>Adicionar</button>
         <button onClick={load} style={{ padding: '8px 12px', borderRadius: 6, background: '#dfe6e9', border: 'none' }}>Atualizar</button>
       </div>
@@ -61,6 +81,9 @@ export default function PeopleManager() {
                   Código: <strong style={{ letterSpacing: 1 }}>{p.code}</strong>
                 </div>
               )}
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                Role: <strong>{p.role ?? 'user'}</strong>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => removePerson(p.id)} style={{ padding: '6px 10px', borderRadius: 6, background: '#ff6b6b', color: 'white', border: 'none' }}>Remover</button>

@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import TopPeople from "./TopPeople";
-import ClickRush from "./ClickRush";
 import PetCompanion from "./PetCompanion";
+import MinigamesModal from "./MinigamesModal";
+import Link from "next/link";
 
 type Stats = {
   hunger: number;
@@ -14,7 +15,7 @@ type Stats = {
   coins?: number;
 };
 
-const STORAGE_KEY = "tamagochi_pet_state";
+const STORAGE_KEY = "samurai_state";
 
 function clamp(v: number) {
   return Math.max(0, Math.min(100, Math.round(v)));
@@ -27,12 +28,9 @@ export default function PetStatus() {
   const [particles, setParticles] = useState<Array<{ id: number; left: number; emoji: string }>>([]);
   const nextParticleId = React.useRef(1);
   const petRef = React.useRef<HTMLDivElement | null>(null);
-  const [minigameActive, setMinigameActive] = useState(false);
-  const [minigameTime, setMinigameTime] = useState(5);
-  const [minigameCount, setMinigameCount] = useState(0);
-  const minigameTimerRef = React.useRef<number | null>(null);
-  const minigameCountRef = React.useRef<number>(0);
-  const [showClickRush, setShowClickRush] = useState(false);
+  const [showMinigames, setShowMinigames] = useState(false);
+  const [showFoodShop, setShowFoodShop] = useState(false);
+  const [foodItems, setFoodItems] = useState<Array<any>>([]);
 
   const [petId, setPetId] = useState<number | null>(null);
   const [petAvatarUrl, setPetAvatarUrl] = useState<string | null>(null);
@@ -41,6 +39,11 @@ export default function PetStatus() {
   const [currentPersonCoins, setCurrentPersonCoins] = useState<number>(0);
   const [companionCode, setCompanionCode] = useState("");
   const [companionWindow, setCompanionWindow] = useState<Window | null>(null);
+  const [hasSession, setHasSession] = useState(false);
+  const [isSleeping, setIsSleeping] = useState(false);
+  const [showCleaning, setShowCleaning] = useState(false);
+  const [cleanClicks, setCleanClicks] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   function loadPet() {
     fetch('/api/pet')
@@ -49,6 +52,7 @@ export default function PetStatus() {
         if (p && p.id) {
           setPetId(p.id);
           setStats({ hunger: p.hunger ?? 100, energy: p.energy ?? 100, happiness: p.happiness ?? 100, hygiene: p.hygiene ?? 100, life: p.life ?? 100, coins: 0 });
+          setIsSleeping(!!(p as { sleepStartedAt?: string | null }).sleepStartedAt);
           if (typeof p.appearance === "string") {
             // Se for URL completa (Vercel Blob) ou caminho relativo
             if (p.appearance.startsWith("http")) {
@@ -90,24 +94,41 @@ export default function PetStatus() {
     };
     window.addEventListener('focus', handleFocus);
     
+    // Atualizar stats automaticamente a cada minuto (ou 15s quando a dormir)
+    const interval = setInterval(() => {
+      if (mounted) loadPet();
+    }, 15000); // 15s para ver recuperação durante o sono; loadPet atualiza isSleeping
+    
     return () => { 
       mounted = false;
       window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
     };
   }, []);
 
   useEffect(() => {
-    // load people for selecting player
     let mounted = true;
-    fetch('/api/people').then(r => r.json()).then(j => {
-      if (!mounted) return;
-      setPeopleList(Array.isArray(j) ? j : []);
-      if (Array.isArray(j) && j.length > 0 && currentPersonId === null) {
-        setCurrentPersonId(j[0].id);
-        setCurrentPersonCoins(j[0].coins ?? 0);
+    let sessionFound = false;
+    async function init() {
+      // Primeiro verificar sessão (cookie)
+      const sessionRes = await fetch('/api/session');
+      const sessionJson = await sessionRes.json();
+      if (mounted && sessionJson?.ok && sessionJson?.person) {
+        sessionFound = true;
+        setHasSession(true);
+        setCurrentPersonId(sessionJson.person.id);
+        setCurrentPersonCoins(sessionJson.person.coins ?? 0);
+        setCompanionCode(sessionJson.person.code ?? "");
       }
-    }).catch(() => {});
-    return () => { mounted = false; };
+      // Carregar lista de pessoas
+      const peopleRes = await fetch('/api/people');
+      const peopleJson = await peopleRes.json();
+      if (!mounted) return;
+      setPeopleList(Array.isArray(peopleJson) ? peopleJson : []);
+      // Sem sessão: não atribuir pessoa (moedas não vão para ninguém)
+      if (!sessionFound) setHasSession(false);
+    }
+    init();
   }, []);
 
   useEffect(() => {
@@ -120,9 +141,26 @@ export default function PetStatus() {
   }, [currentPersonId]);
 
   useEffect(() => {
+    // Carregar inventário de comida (apenas itens comprados)
+    fetch('/api/pet/inventory')
+      .then(r => r.json())
+      .then(items => {
+        setFoodItems(Array.isArray(items) ? items : []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     // keep local copy in case offline
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
   }, [stats]);
+
+  useEffect(() => {
+    if (!showCleaning) return;
+    const handleMove = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', handleMove);
+    return () => window.removeEventListener('mousemove', handleMove);
+  }, [showCleaning]);
 
   async function apply(delta: Partial<Stats>, msg?: string) {
     // optimistic UI update
@@ -162,9 +200,8 @@ export default function PetStatus() {
         @keyframes pulse { 0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 107, 0.3), 0 0 40px rgba(255, 107, 107, 0.2); } 50% { box-shadow: 0 0 30px rgba(255, 107, 107, 0.5), 0 0 60px rgba(255, 107, 107, 0.3); } }
         @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.4)); } 50% { filter: drop-shadow(0 0 16px rgba(255, 107, 107, 0.6)); } }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        @keyframes opacityPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
       `}</style>
-      
-      <h1 style={{ textAlign: "center", marginBottom: 24, fontSize: 28 }}>🐾 Seu Tamagochi</h1>
 
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
         {/* Coluna esquerda: Top People */}
@@ -187,6 +224,19 @@ export default function PetStatus() {
                 role="button"
                 tabIndex={0}
                 onClick={() => {
+                  if (showCleaning) {
+                    setCleanClicks((c) => {
+                      const next = c + 1;
+                      if (next >= 5) {
+                        setShowCleaning(false);
+                        setCleanClicks(0);
+                        apply({ hygiene: 30, happiness: 5 }, "Limpo e cheiroso!");
+                        return 0;
+                      }
+                      return next;
+                    });
+                    return;
+                  }
                   // quick pet animation + small happiness
                   apply({ happiness: 5 }, "Acariciado!");
                   setIsPetting(true);
@@ -197,14 +247,6 @@ export default function PetStatus() {
                   const emojis = ["💖", "✨", "💫", "🌟", "🎉", "⚔️", "🗾"];
                   setParticles((p) => [...p, { id, left, emoji: emojis[Math.floor(Math.random() * emojis.length)] }]);
                   setTimeout(() => setParticles((p) => p.filter(x => x.id !== id)), 900);
-                  // if in minigame, count tap
-                  if (minigameActive) {
-                    setMinigameCount((c) => {
-                      const next = c + 1;
-                      minigameCountRef.current = next;
-                      return next;
-                    });
-                  }
                 }}
                 style={{
                   width: 280,
@@ -260,9 +302,57 @@ export default function PetStatus() {
                   boxShadow: 'none',
                   border: 'none'
                 }}>
+                  {isSleeping && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'rgba(100, 100, 150, 0.15)',
+                      borderRadius: 24,
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'center',
+                      paddingTop: 20,
+                      zIndex: 5,
+                      pointerEvents: 'none'
+                    }}>
+                      <span style={{ fontSize: 28, animation: 'opacityPulse 1.5s ease-in-out infinite' }}>💤 zzz</span>
+                    </div>
+                  )}
+                  {/* Sujidades - aparecem quando higiene desce */}
+                  {!isSleeping && (() => {
+                    const dirtIntensity = Math.max(0, (100 - stats.hygiene) / 100);
+                    const spots = [
+                      { left: '15%', top: '20%', size: 35 },
+                      { left: '60%', top: '15%', size: 28 },
+                      { left: '75%', top: '45%', size: 40 },
+                      { left: '25%', top: '55%', size: 30 },
+                      { left: '50%', top: '70%', size: 25 },
+                      { left: '35%', top: '35%', size: 22 },
+                    ];
+                    return spots.map((s, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: 'absolute',
+                          left: s.left,
+                          top: s.top,
+                          width: s.size,
+                          height: s.size,
+                          borderRadius: '50%',
+                          background: 'radial-gradient(circle, rgba(80,60,40,0.6) 0%, rgba(60,45,30,0.4) 50%, transparent 70%)',
+                          opacity: dirtIntensity * 0.9,
+                          pointerEvents: 'none',
+                          zIndex: 4,
+                        }}
+                      />
+                    ));
+                  })()}
                   <img 
                     src={petAvatarUrl || "/samurai.svg"} 
-                    alt="Avatar do pet"
+                    alt="Avatar do Samurai"
                     key={petAvatarUrl || "default"}
                     onError={(e) => {
                       // Fallback para samurai local se a imagem do blob falhar
@@ -275,9 +365,9 @@ export default function PetStatus() {
                       width: '100%', 
                       height: '100%',
                       objectFit: 'contain',
-                      filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))',
-                      animation: 'glow 2s ease-in-out infinite',
-                      transition: 'transform 200ms ease'
+                      filter: isSleeping ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.2)) brightness(0.85)' : 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))',
+                      animation: isSleeping ? 'none' : 'glow 2s ease-in-out infinite',
+                      transition: 'transform 200ms ease, filter 300ms ease'
                     }} 
                   />
                 </div>
@@ -295,13 +385,10 @@ export default function PetStatus() {
                   }}>{pt.emoji}</div>
                 ))}
               </div>
-              <div style={{ marginTop: 12, color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>Samurai</div>
-              <div style={{ marginTop: 4, color: 'var(--foreground)' }}>Felicidade: <strong>{stats.happiness}%</strong></div>
-              <div style={{ marginTop: 16 }}>
-                <button onClick={() => setShowClickRush(true)} style={{ padding: '10px 16px', borderRadius: 8, background: '#ff7675', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                  Brincar (minigame)
-                </button>
+              <div style={{ marginTop: 12, color: 'var(--foreground)', fontWeight: 700, fontSize: 18 }}>
+                Samurai {isSleeping && <span style={{ fontSize: 14, color: 'var(--muted)', fontWeight: 500 }}>😴 a dormir</span>}
               </div>
+              <div style={{ marginTop: 4, color: 'var(--foreground)' }}>Felicidade: <strong>{stats.happiness}%</strong></div>
             </div>
           </div>
 
@@ -321,80 +408,167 @@ export default function PetStatus() {
             <Stat label="Vida" value={stats.life} color="#6a89cc" />
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                <input
-                  type="text"
-                  value={companionCode}
-                  onChange={(e) => setCompanionCode(e.target.value.toUpperCase())}
-                  placeholder="Código (ABC123)"
-                  maxLength={6}
-                  style={{
-                    flex: "0 0 120px",
-                    padding: "6px 10px",
-                    borderRadius: 8,
-                    border: "1px solid var(--card-border)",
-                    fontSize: 13,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    fontFamily: "monospace"
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    if (!companionCode || companionCode.length !== 6) {
+              {hasSession ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!companionCode || companionCode.length !== 6) return;
+                      const width = 250;
+                      const height = 380;
+                      const left = window.screen.width - width - 20;
+                      const top = 20;
+                      const popup = window.open(
+                        `/companion?code=${encodeURIComponent(companionCode)}`,
+                        "petCompanion",
+                        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no`
+                      );
+                      if (popup) setCompanionWindow(popup);
+                    }}
+                    style={btnStyle("#e74c3c")}
+                  >
+                    Fazer Companhia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/session', { method: 'DELETE' });
+                        setHasSession(false);
+                        setCurrentPersonId(null);
+                        setCurrentPersonCoins(0);
+                        setCompanionCode("");
+                        setMessage("Sessão terminada");
+                        setTimeout(() => setMessage(null), 2500);
+                      } catch (e) {
+                        setMessage("Erro ao sair");
+                        setTimeout(() => setMessage(null), 2500);
+                      }
+                    }}
+                    style={btnStyle("#95a5a6")}
+                  >
+                    Sair
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const code = companionCode.trim().toUpperCase();
+                    if (!code || code.length !== 6) {
                       setMessage("Código inválido. Use 6 caracteres.");
                       setTimeout(() => setMessage(null), 2500);
                       return;
                     }
-                    // Abrir popup window
-                    const width = 250;
-                    const height = 380;
-                    const left = window.screen.width - width - 20;
-                    const top = 20;
-                    const popup = window.open(
-                      `/companion?code=${encodeURIComponent(companionCode)}`,
-                      "petCompanion",
-                      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no`
-                    );
-                    if (popup) {
-                      setCompanionWindow(popup);
+                    try {
+                      const res = await fetch('/api/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code }),
+                      });
+                      const j = await res.json();
+                      if (j?.ok) {
+                        setHasSession(true);
+                        setCurrentPersonId(j.person.id);
+                        setCurrentPersonCoins(j.person.coins ?? 0);
+                        setCompanionCode(j.person.code ?? "");
+                        setMessage(`Sessão iniciada: ${j.person.name}`);
+                        setTimeout(() => setMessage(null), 2500);
+                      } else {
+                        setMessage(j?.error || 'Código não encontrado');
+                        setTimeout(() => setMessage(null), 2500);
+                      }
+                    } catch (err) {
+                      setMessage('Erro de rede');
+                      setTimeout(() => setMessage(null), 2500);
                     }
                   }}
-                  style={btnStyle("#e74c3c")}
                 >
-                  Fazer Companhia
-                </button>
-              </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <input
+                      type="text"
+                      value={companionCode}
+                      onChange={(e) => setCompanionCode(e.target.value.toUpperCase())}
+                      placeholder="Código (ABC123)"
+                      maxLength={6}
+                      style={{
+                        flex: "0 0 120px",
+                        padding: "6px 10px",
+                        borderRadius: 8,
+                        border: "1px solid var(--card-border)",
+                        fontSize: 13,
+                        letterSpacing: 1,
+                        textTransform: "uppercase",
+                        fontFamily: "monospace"
+                      }}
+                    />
+                    <button type="submit" style={btnStyle("#2ecc71")}>
+                      Entrar
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-              <button onClick={() => apply({ hunger: 20, happiness: 5 }, "Alimentado!")}
+              <button onClick={() => setShowFoodShop(true)}
                 style={btnStyle("#4CAF50")}>
-                Alimentar
+                🍎 Alimentar
               </button>
 
-              <button onClick={() => apply({ energy: 25, hunger: -8 }, "Dormiu bem!")}
-                style={btnStyle("#FF9800")}>
-                Dormir
+              <button
+                onClick={() => setShowMinigames(true)}
+                style={btnStyle("#8e44ad")}
+              >
+                🎮 Brincar com o Samurai
               </button>
 
-              <button onClick={() => apply({ hygiene: 30, happiness: 5 }, "Limpo e cheiroso!")}
-                style={btnStyle("#34B3A0")}>
-                Limpar
+              <button
+                onClick={async () => {
+                  if (isSleeping) return;
+                  try {
+                    const res = await fetch('/api/pet?action=sleep', { method: 'POST' });
+                    const p = await res.json();
+                    if (p?.id) {
+                      setIsSleeping(true);
+                      setStats({ hunger: p.hunger ?? stats.hunger, energy: p.energy ?? stats.energy, happiness: p.happiness ?? stats.happiness, hygiene: p.hygiene ?? stats.hygiene, life: p.life ?? stats.life, coins: 0 });
+                      setMessage("A dormir... os stats vão subir aos poucos");
+                      setTimeout(() => setMessage(null), 3000);
+                    }
+                  } catch (e) {
+                    setMessage("Erro ao adormecer");
+                    setTimeout(() => setMessage(null), 2500);
+                  }
+                }}
+                disabled={isSleeping}
+                style={btnStyle(isSleeping ? "#95a5a6" : "#FF9800")}
+              >
+                {isSleeping ? "😴 A dormir..." : "Dormir"}
               </button>
 
-              <button onClick={() => apply({ happiness: 15, energy: -10 }, "Brincou bastante!")}
-                style={btnStyle("#2196F3")}>
-                Brincar (antigo)
+              <button
+                onClick={() => {
+                  if (showCleaning) {
+                    setShowCleaning(false);
+                    setCleanClicks(0);
+                    setMessage(null);
+                    return;
+                  }
+                  setShowCleaning(true);
+                  setCleanClicks(0);
+                    setMessage("Clique no Samurai 5 vezes com a esponja para limpar");
+                  setTimeout(() => setMessage(null), 3000);
+                }}
+                style={btnStyle(showCleaning ? "#95a5a6" : "#34B3A0")}
+              >
+                {showCleaning ? `🧽 ${cleanClicks}/5 (clique para cancelar)` : "Limpar"}
               </button>
 
-              <button onClick={() => {
-                const delta = { hunger: 100 - stats.hunger, energy: 100 - stats.energy, happiness: 100 - stats.happiness, hygiene: 100 - stats.hygiene, life: 100 - stats.life };
-                apply(delta, "Resetado para 100% 🙂");
-              }}
-                style={btnStyle("#9B59B6")}>
-                Resetar
-              </button>
+              <Link href="/shop">
+                <button style={btnStyle("#0984e3")}>
+                  🛒 Loja
+                </button>
+              </Link>
             </div>
 
             {message && <div style={{ marginTop: 16, color: "var(--foreground)", padding: 12, background: "var(--card-border)", borderRadius: 8 }}>{message}</div>}
@@ -402,36 +576,164 @@ export default function PetStatus() {
         </div>
       </div>
 
-            <div style={{ marginTop: 24, textAlign: "center", color: "var(--foreground)", fontSize: 13 }}>
-        Estado sincronizado com o servidor (Prisma). Se estiver offline, o estado é mantido localmente.
-      </div>
+      {/* Esponja que segue o cursor ao limpar */}
+      {showCleaning && (
+        <div
+          style={{
+            position: 'fixed',
+            left: mousePos.x,
+            top: mousePos.y,
+            width: 48,
+            height: 48,
+            marginLeft: -24,
+            marginTop: -24,
+            pointerEvents: 'none',
+            zIndex: 9999,
+            fontSize: 40,
+            transform: 'rotate(-15deg)',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+          }}
+        >
+          🧽
+        </div>
+      )}
 
-      {/* Minigame modal overlay */}
-      {showClickRush && (
-        <div style={{ position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
-          <div style={{ width: 360 }}>
-            <ClickRush personId={currentPersonId ?? undefined} onFinish={async (score, coins) => {
-              setShowClickRush(false);
-              // fetch pet after server updated coins
-              try {
-                const res = await fetch('/api/pet');
-                const j = await res.json();
-                if (j && j.id) {
-                  setStats({ hunger: j.hunger ?? 100, energy: j.energy ?? 100, happiness: j.happiness ?? 100, hygiene: j.hygiene ?? 100, life: j.life ?? 100, coins: 0 });
-                  // if coins present on pet, update local copy
-                }
-              } catch (e) {
-                // ignore
-              }
-              // update person coins locally
-              if (currentPersonId) {
-                try {
-                  const p = await fetch('/api/people').then(r => r.json());
-                  const found = Array.isArray(p) ? p.find((x: any) => x.id === currentPersonId) : null;
-                  if (found) setCurrentPersonCoins(found.coins ?? 0);
-                } catch (e) {}
-              }
-            }} />
+      {/* Modal de Minijogos */}
+      <MinigamesModal
+        isOpen={showMinigames}
+        onClose={() => setShowMinigames(false)}
+        personId={hasSession ? (currentPersonId ?? undefined) : undefined}
+        onGameFinish={async () => {
+          await loadPet();
+          if (currentPersonId) {
+            const p = await fetch('/api/people').then(r => r.json());
+            const found = Array.isArray(p) ? p.find((x: any) => x.id === currentPersonId) : null;
+            if (found) setCurrentPersonCoins(found.coins ?? 0);
+          }
+        }}
+      />
+
+      {/* Modal de Alimentação (inventário comprado) */}
+      {showFoodShop && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowFoodShop(false)}
+        >
+          <div
+            style={{
+              background: 'var(--card-bg)',
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 400,
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0 }}>Alimentar o Samurai</h3>
+              <button
+                onClick={() => setShowFoodShop(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: 24,
+                  cursor: 'pointer',
+                  color: 'var(--muted)',
+                }}
+              >
+                ×
+              </button>
+            </div>
+            {foodItems.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {foodItems.map((item: any) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      background: 'var(--background)',
+                      border: '1px solid var(--card-border)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{item.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        {item.effect && typeof item.effect === 'object' && (
+                          <>
+                            {item.effect.hunger && `+${item.effect.hunger} Fome `}
+                            {item.effect.energy && `+${item.effect.energy} Energia `}
+                            {item.effect.happiness && `+${item.effect.happiness} Felicidade `}
+                            {item.effect.hygiene && `+${item.effect.hygiene} Higiene `}
+                            {item.effect.life && `+${item.effect.life} Vida `}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600 }}>x{item.quantity ?? 0}</span>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/pet', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ consumeItemId: item.id }),
+                            });
+                            const j = await res.json();
+                            if (res.ok && j?.id) {
+                              setMessage('Samurai alimentado!');
+                              await loadPet();
+                              const inv = await fetch('/api/pet/inventory').then(r => r.json());
+                              setFoodItems(Array.isArray(inv) ? inv : []);
+                              setTimeout(() => setMessage(null), 2000);
+                            } else {
+                              setMessage('Erro: ' + (j?.error || 'item indisponível'));
+                              setTimeout(() => setMessage(null), 2500);
+                            }
+                          } catch (e) {
+                            setMessage('Erro de rede');
+                            setTimeout(() => setMessage(null), 2500);
+                          }
+                        }}
+                        disabled={(item.quantity ?? 0) <= 0}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          background: (item.quantity ?? 0) > 0 ? '#4CAF50' : '#ccc',
+                          color: 'white',
+                          border: 'none',
+                          cursor: (item.quantity ?? 0) > 0 ? 'pointer' : 'not-allowed',
+                        }}
+                      >
+                        Dar ao Samurai
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 20 }}>
+                Nenhuma comida comprada no inventário. Compre itens na loja primeiro.
+              </div>
+            )}
           </div>
         </div>
       )}

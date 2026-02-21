@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@source "./**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../lib/**/*.{js,ts,jsx,tsx,mdx}";
 
 :root {
   --background: #ffffff;
@@ -8,6 +11,10 @@
   --muted-2: #999999;
   --accent: #0984e3;
   --card-border: #eeeeee;
+  --input-bg: #ffffff;
+  --input-text: #171717;
+  --input-border: #d1d5db;
+  --input-placeholder: #8a8a8a;
 }
 
 @theme inline {
@@ -39,6 +46,10 @@
   --muted-2: #d1d5db;
   --accent: #58a6ff;
   --card-border: #3a3a3a;
+  --input-bg: #2f2f2f;
+  --input-text: #f0f0f0;
+  --input-border: #4b5563;
+  --input-placeholder: #9ca3af;
 }
 :root[data-theme='light'] {
   --background: #ffffff;
@@ -48,6 +59,10 @@
   --muted-2: #999999;
   --accent: #0984e3;
   --card-border: #eeeeee;
+  --input-bg: #ffffff;
+  --input-text: #171717;
+  --input-border: #d1d5db;
+  --input-placeholder: #8a8a8a;
 }
 
 html, body {
@@ -70,3 +85,19 @@ body {
   transition: background-color 180ms ease, color 180ms ease;
 }
 .muted { color: var(--muted); }
+
+input, select, textarea {
+  background: var(--input-bg);
+  color: var(--input-text);
+  border: 1px solid var(--input-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+select option {
+  background: var(--input-bg);
+  color: var(--input-text);
+}

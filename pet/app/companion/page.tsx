@@ -23,8 +23,8 @@ export default function CompanionPage() {
   }
 
   return (
-    <div style={{ padding: 20, display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "var(--background)" }}>
-      <PetCompanion code={code} onClose={() => window.close()} />
+    <div style={{ padding: 20, display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "var(--background)", position: "relative" }}>
+      <PetCompanion code={code} onClose={() => (window.history.length > 1 ? window.history.back() : window.close())} />
     </div>
   );
 }

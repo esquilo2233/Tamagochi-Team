@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getOrCreatePet, performAction, applyItemEffect, updatePetStateWithWork, updatePetAvatar } from "../../../lib/pet";
+import { getOrCreatePet, performAction, applyItemEffect, updatePetStateWithWork, updatePetAvatar, consumeFoodItem } from "../../../lib/pet";
 import { put } from "@vercel/blob";
 import { DEFAULT_SAMURAI_SVG } from "../../../lib/default-avatar";
 
@@ -40,6 +40,15 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    if (body && typeof body.consumeItemId === "number") {
+      const pet = await getOrCreatePet();
+      const consumed = await consumeFoodItem(pet.id, body.consumeItemId);
+      if (!consumed.ok) {
+        return NextResponse.json(consumed, { status: 400 });
+      }
+      return NextResponse.json(consumed.pet);
+    }
+
     if (body && body.effect) {
       const pet = await getOrCreatePet();
       const updated = await applyItemEffect(pet.id, body.effect);

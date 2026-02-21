@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { awardCoinsToPerson } from "../../../lib/pet";
+import { awardCoinsToPerson, applyItemEffect } from "../../../lib/pet";
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +18,10 @@ export async function POST(req: Request) {
     const total = coins + bonus;
 
     const updatedPerson = await awardCoinsToPerson(personId, total, { game: body.game, playerName: body.player, score: body.score });
+
+    // Ao jogar: fome, energia e higiene descem
+    const petId = typeof body.petId === 'number' ? body.petId : 1;
+    await applyItemEffect(petId, { hunger: -5, energy: -8, hygiene: -3 });
 
     return NextResponse.json({ ok: true, coinsAwarded: total, person: updatedPerson });
   } catch (err: any) {

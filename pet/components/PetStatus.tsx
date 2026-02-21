@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import TopPeople from "./TopPeople";
+import TopTime from "./TopTime";
 import PetCompanion from "./PetCompanion";
 import MinigamesModal from "./MinigamesModal";
 import Link from "next/link";
@@ -266,9 +267,10 @@ export default function PetStatus() {
       `}</style>
 
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-        {/* Coluna esquerda: Top People */}
+        {/* Coluna esquerda: Top People e Top Time */}
         <aside style={{ width: 280, flexShrink: 0 }}>
           <TopPeople />
+          <TopTime />
         </aside>
 
         {/* Coluna central: Pet e controles */}

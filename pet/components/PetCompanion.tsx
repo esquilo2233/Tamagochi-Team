@@ -7,6 +7,7 @@ export default function PetCompanion({ code, onClose }: { code: string; onClose:
   const [session, setSession] = useState<any>(null);
   const [coinsEarned, setCoinsEarned] = useState(0);
   const [timeSeconds, setTimeSeconds] = useState(0);
+  const [startTime, setStartTime] = useState<number>(0);
 
   useEffect(() => {
     async function init() {
@@ -22,8 +23,10 @@ export default function PetCompanion({ code, onClose }: { code: string; onClose:
           body: JSON.stringify({ action: "start", code, petId }),
         });
         const data = await res.json();
-        if (data.ok) {
+        if (data.ok && data.session) {
           setSession(data.session);
+          // Guardar o tempo de início localmente para contagem precisa
+          setStartTime(Date.now());
         }
       } catch (e) {
         console.error("Erro ao iniciar companhia", e);
@@ -45,30 +48,36 @@ export default function PetCompanion({ code, onClose }: { code: string; onClose:
     return () => clearInterval(interval);
   }, []);
 
+  // Timer local para contagem precisa do tempo
+  useEffect(() => {
+    if (!startTime) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const seconds = Math.floor((now - startTime) / 1000);
+      setTimeSeconds(seconds);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [startTime]);
+
   useEffect(() => {
     if (!session) return;
 
-    // Atualizar moedas e tempo
-    async function updateData() {
+    // Atualizar moedas periodicamente
+    async function updateCoins() {
       try {
         await fetch("/api/pet"); // processa ticks
         const sRes = await fetch(`/api/companion?code=${code}`);
         const sessions = await sRes.json();
         if (sessions && sessions.length > 0) {
-          const currentSession = sessions[0];
-          setCoinsEarned(currentSession.coinsEarned || 0);
-
-          // Calcular tempo desde o startedAt
-          const started = new Date(currentSession.startedAt).getTime();
-          const now = Date.now();
-          const seconds = Math.floor((now - started) / 1000);
-          setTimeSeconds(seconds);
+          setCoinsEarned(sessions[0].coinsEarned || 0);
         }
       } catch (e) {}
     }
 
-    updateData();
-    const interval = setInterval(updateData, 1000); // atualizar a cada segundo
+    updateCoins();
+    const interval = setInterval(updateCoins, 60000); // atualizar moedas a cada minuto
     return () => clearInterval(interval);
   }, [session, code]);
 

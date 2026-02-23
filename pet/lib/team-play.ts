@@ -27,6 +27,7 @@ export type RoomDB = {
     winner: string | null;
     state: any;
     rematchVotes: string[];
+    hostPersonId: number | null;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -57,6 +58,7 @@ export async function createRoom(room: {
     winner: string | null;
     state: any;
     rematchVotes: string[];
+    hostPersonId?: number;
 }): Promise<RoomDB> {
     try {
         const created = await prisma.teamPlayRoom.create({
@@ -68,6 +70,7 @@ export async function createRoom(room: {
                 winner: room.winner,
                 state: room.state as any,
                 rematchVotes: room.rematchVotes as any,
+                hostPersonId: room.hostPersonId,
             },
         });
         return {
@@ -162,6 +165,7 @@ export async function upsertRoom(room: {
     winner: string | null;
     state: any;
     rematchVotes: string[];
+    hostPersonId?: number;
 }): Promise<RoomDB> {
     try {
         const upserted = await prisma.teamPlayRoom.upsert({
@@ -174,6 +178,7 @@ export async function upsertRoom(room: {
                 winner: room.winner,
                 state: room.state as any,
                 rematchVotes: room.rematchVotes as any,
+                hostPersonId: room.hostPersonId,
             },
             update: {
                 players: room.players as any,
@@ -181,6 +186,7 @@ export async function upsertRoom(room: {
                 winner: room.winner,
                 state: room.state as any,
                 rematchVotes: room.rematchVotes as any,
+                hostPersonId: room.hostPersonId,
             },
         });
         return {

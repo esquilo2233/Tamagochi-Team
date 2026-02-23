@@ -1,0 +1,341 @@
+🐾 TAMAGOCHI TEAM - GUIA COMPLETO DA PLATAFORMA
+
+📋 ÍNDICE
+1. Visão Geral
+2. Página Inicial
+3. O Nosso Pet
+4. Sistema de Companhia
+5. Team Building (Multijogador)
+6. Loja
+7. Inventário
+8. Pessoas e Classificação
+9. Configurações
+10. Avisos Importantes
+11. Resolução de Problemas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 VISÃO GERAL
+
+A plataforma Tamagochi Team combina:
+🐾 Pet Virtual - Tamagochi que evolui com a equipa
+👥 Sistema de Equipa - Regista membros e acompanha contribuições
+🎮 Jogos Multijogador - Compete em tempo real
+🏆 Classificação e Recompensas - Ganha moedas e sobe na liderança
+
+CONCEITOS PRINCIPAIS:
+• Pet = Tamagochi virtual com estatísticas (fome, energia, felicidade, higiene, vida)
+• Pessoas = Membros da equipa com código único
+• Moedas = Moeda virtual para comprar itens
+• Sessão = Período de atividade (companhia ou trabalho)
+• Team Play = Sala de jogos multijogador
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏠 PÁGINA INICIAL (/)
+
+O que encontras:
+• Top Time - Quem passou mais tempo com o pet
+• Top Pessoas - Classificação geral
+• Acesso Rápido - Links para todas as secções
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🐾 O Nosso PET
+
+5 ESTATÍSTICAS PRINCIPAIS:
+
+Fome → Alimentar o pet
+Energia → Deixar descansar
+Felicidade → Brincar, jogar
+Higiene → Limpar o pet
+Vida → Manter stats equilibradas
+
+AÇÕES DISPONÍVEIS:
+🍖 Alimentar - Usa comida do inventário
+🧹 Limpar - Remove sujidade
+🎮 Brincar - Aumenta felicidade
+😴 Dormir - Recupera energia
+
+CONFIGURAÇÕES (Admin/Gestor):
+• Decay - Velocidade de queda das stats
+• Recompensas - Moedas por vitórias/sessões
+• Reset de Stats - Voltar tudo a 100
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👥 SISTEMA DE COMPANHIA
+
+COMO FUNCIONA:
+
+1️⃣ Registar Pessoa
+   • Na homepage no campo superior direito
+   • Clica em "Registar"
+   • Indica nome
+   • GUARDA O CÓDIGO GERADO (ex: ABC123)
+
+2️⃣ Iniciar Sessão
+   • A pessoa insere o seu código em no campo abaixo dos status
+   • Clica no botão de iniciar sessão
+
+3️⃣ Ganhar Moedas
+   • Automático pelo tempo de sessão
+   • Configurado em /pet/cenas → Recompensas
+
+4️⃣ Terminar Sessão
+   • Clica em "Terminar Companhia"
+   • Moedas creditadas
+
+VANTAGENS:
+✅ Ganha moedas passivamente
+✅ Contribui para classificação
+✅ Ajuda o pet
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎮 TEAM BUILDING (/team-play)
+
+JOGOS DISPONÍVEIS:
+⭕ Jogo do Galo - Tabuleiro 3x3, 3 em linha
+♞ Xadrez - Tabuleiro 8x8, xeque-mate
+🔴 4 em Linha - Tabuleiro 7x6, 4 em linha
+
+COMO CRIAR SALA:
+1. Indica teu nome (ou usa automático)
+2. Escolhe o jogo
+3. Clica em "Criar sala e gerar link"
+4. Copia e partilha link/código
+
+COMO ENTRAR:
+Opção A: Cola código no campo
+Opção B: Clica no link direto
+Opção C: Clica "Entrar" na lista de salas
+
+DURANTE O JOGO:
+• Teu turno → Faz jogada
+• Turno adversário → Aguarda
+• Fim → Pede desforra ou volta ao lobby
+
+FUNCIONALIDADES:
+🔄 Sincronização em tempo real (SSE)
+🏠 Banner de jogo em curso
+📋 Lista de salas abertas (atualiza a cada 3s)
+🎯 Desforra (ambos aceitam)
+💾 Persistência (não perdes progresso)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛍️ LOJA (/shop)
+
+COMIDA:
+• Ração Básica - Barata, efeito pequeno
+• Petiscos - Preço médio
+• Comida Premium - Cara, efeito grande
+
+ITENS ESPECIAIS:
+• Medicamentos - Recuperam vida
+• Vitaminas - Boost temporário
+• Acessórios - Cosméticos
+
+COMO COMPRAR:
+1. Vai a /shop
+2. Escolhe item
+3. Clica em "Comprar"
+4. Vai para inventário
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎒 INVENTÁRIO (/items)
+
+O QUE ENCONTRAS:
+• Comida - Para alimentar
+• Itens de Uso - Medicamentos, vitaminas
+• Cosméticos - Acessórios
+
+COMO USAR:
+1. Vai a /pet/cenas
+2. Clica em "Alimentar"
+3. Escolhe do inventário
+
+ADMIN/GESTOR:
+• Criar/Editar/Remover itens em /items
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👥 PESSOAS E CLASSIFICAÇÃO (/people)
+
+CLASSIFICAÇÕES:
+• Top Time - Mais tempo em sessões
+• Top Coins - Mais moedas
+• Top Jogos - Mais vitórias
+
+GERIR PESSOAS (Admin/Gestor):
+• Ver lista completa
+• Criar nova pessoa
+• Editar nome/função
+• Remover pessoa (irreversível!)
+
+CÓDIGOS:
+• 6 caracteres alfanuméricos
+• Únicos por pessoa
+• Usa para login em /companion
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚙️ CONFIGURAÇÕES (/pet/cenas)
+
+DECAY (Admin/Gestor):
+Configura velocidade de queda:
+• Fome 0-100%
+• Energia 0-100%
+• Felicidade 0-100%
+• Higiene 0-100%
+• Vida 0-100%
+
+RECOMPENSAS (Admin/Gestor):
+• Vitória Jogo do Galo: 50 moedas
+• Derrota Jogo do Galo: 10 moedas
+• Vitória Xadrez: 100 moedas
+• Vitória 4 em Linha: 75 moedas
+• Sessão Companhia/min: 1 moeda
+• Sessão Trabalho/min: 2 moedas
+
+RESET DE STATS (Admin/Gestor):
+• Todas voltam a 100
+• IRREVERSÍVEL!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ AVISOS IMPORTANTES
+
+🔄 SINCRONIZAÇÃO (TEAM PLAY)
+
+O sistema usa SSE para sincronização em tempo real.
+
+PODE FALHAR QUANDO:
+• Conexão instável
+• Navegador em segundo plano
+• Servidor sobrecarregado
+
+SINTOMAS:
+• Jogada não aparece
+• Jogo congelado
+• Desforra não inicia
+
+SOLUÇÃO:
+🔃 DÁ F5 (RECARREGA A PÁGINA)
+
+✅ A SESSÃO É RESTAURADA AUTOMATICAMENTE!
+
+💾 DADOS E PERSISTÊNCIA:
+
+Sessão Pessoa → Cookie (7 dias)
+Sessão Team Play → LocalStorage (indefinido)
+Salas → Base de Dados (indefinido)
+Stats Pet → Base de Dados (indefinido)
+Inventário → Base de Dados (indefinido)
+
+🔐 PERMISSÕES:
+
+Utilizador Normal:
+✅ Jogar
+✅ Criar sala
+✅ Fechar sala (sua)
+
+Admin/Gestor:
+✅ Tudo acima +
+✅ Fechar sala (outra)
+✅ Gerir pessoas
+✅ Gerir itens
+✅ Configurações
+✅ Reset stats
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛠️ RESOLUÇÃO DE PROBLEMAS
+
+"SALA NÃO ENCONTRADA"
+→ Verifica código (6 caracteres, maiúsculas)
+
+"SALA CHEIA"
+→ Já há 2 jogadores, cria nova ou espera
+
+"NÃO É A TUA VEZ"
+→ Turno do adversário, aguarda
+
+JOGO NÃO ATUALIZA
+→ DÁ F5
+
+NOME NÃO APARECE
+→ Indica manualmente
+
+NÃO CONSIGO ENTRAR
+→ Já estás noutro jogo, sai primeiro
+
+MOEDAS NÃO ATUALIZAM
+→ F5 ou limpa cache
+
+PET NÃO RESPONDE
+→ Aguarda alguns segundos
+
+PASSOS DE DEBUG:
+1. Verifica internet
+2. Abre consola (F12)
+3. Tenta F5 (resolve 90%)
+4. Limpa cache (Ctrl+Shift+Delete)
+5. Reporta à equipa
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📱 DICAS DE UTILIZAÇÃO
+
+PARA TODOS:
+✅ Regista-te com código de pessoa
+✅ Mantém pet feliz (stats equilibradas)
+✅ Joga regularmente
+✅ Partilha salas
+✅ Guarda códigos
+
+PARA ADMINS/GESTORES:
+📊 Monitoriza stats, ajusta decay
+💰 Balanceia recompensas
+🎮 Cria torneios
+📝 Mantém itens atualizados
+🔧 Testa mudanças antes de commit
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏗️ ARQUITETURA (PARA DEVs)
+
+STACK:
+Frontend: Next.js 16 + React
+Backend: Next.js API Routes
+Base de Dados: PostgreSQL
+ORM: Prisma
+Sincronização: SSE
+Cache: LocalStorage + Memory Cache
+
+TABELAS:
+• Pets (stats, inventário, sessões)
+• Pessoas (código, nome, moedas)
+• TeamPlayRooms (jogo, jogadores, estado)
+• Itens (nome, tipo, preço, efeito)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 SUPORTE
+
+REPORTAR ERROS:
+1. Descreve problema
+2. Passos para reproduzir
+3. Captura de ecrã
+4. Envia à equipa
+
+DESENVOLVIMENTO:
+Repo: Tamagochi-Team
+Branch: main
+Testa antes de push!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DIVIRTE-TE E BOM JOGO! 🎉🐾

@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { usePersonData, getPersonFromStorage } from "../../hooks/usePersonData";
 
 type Room = {
     id: string;
@@ -261,6 +262,9 @@ function TeamPlayContent() {
     const router = useRouter();
     const roomFromUrl = search.get("room") || "";
 
+    // Usar hook para obter dados da pessoa
+    const { person, loading: personLoading } = usePersonData();
+
     const [name, setName] = useState("");
     const [game, setGame] = useState<"tictactoe" | "chess" | "connect4">(
         "tictactoe",
@@ -284,11 +288,13 @@ function TeamPlayContent() {
             players: number;
             host: string;
             hostId?: string;
+            hostPersonId?: number;
         }>
     >([]);
     const [hasSession, setHasSession] = useState(false);
     const [personRole, setPersonRole] = useState<string | undefined>(undefined);
 
+    // Dark mode
     useEffect(() => {
         const mq = window.matchMedia("(prefers-color-scheme: dark)");
         const apply = () => setIsDarkMode(mq.matches);
@@ -297,9 +303,27 @@ function TeamPlayContent() {
         return () => mq.removeEventListener("change", apply);
     }, []);
 
+    // URL room
     useEffect(() => {
         if (roomFromUrl) setInviteCode(roomFromUrl);
     }, [roomFromUrl]);
+
+    // Atualizar nome e role quando os dados da pessoa forem carregados
+    useEffect(() => {
+        if (person?.name && !name) {
+            setName(person.name);
+        }
+        if (person?.role) {
+            setPersonRole(person.role);
+        }
+    }, [person]);
+
+    const inviteLink = useMemo(() => {
+        if (!room) return "";
+        if (typeof window === "undefined") return "";
+        return `${window.location.origin}/team-play?room=${room.id}`;
+    }, [room]);
+    const inviteRoomCode = room?.id || "";
 
     function showToast(
         message: string,
@@ -308,13 +332,6 @@ function TeamPlayContent() {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
     }
-
-    const inviteLink = useMemo(() => {
-        if (!room) return "";
-        if (typeof window === "undefined") return "";
-        return `${window.location.origin}/team-play?room=${room.id}`;
-    }, [room]);
-    const inviteRoomCode = room?.id || "";
 
     async function call(body: any) {
         const res = await fetch("/api/team-play", {
@@ -334,32 +351,6 @@ function TeamPlayContent() {
             }
         } catch (e) {
             console.error("Erro ao carregar salas:", e);
-        }
-    }
-
-    async function loadPersonRole() {
-        try {
-            // Tenta obter o role e nome da pessoa guardada no localStorage
-            if (typeof window === "undefined") return;
-            const sessionRaw = window.localStorage.getItem(
-                "pet-companion-session-v1",
-            );
-            if (sessionRaw) {
-                try {
-                    const session = JSON.parse(sessionRaw);
-                    if (session?.person?.role) {
-                        setPersonRole(session.person.role);
-                    }
-                    // Puxa o nome da pessoa se disponível
-                    if (session?.person?.name && !name) {
-                        setName(session.person.name);
-                    }
-                } catch {
-                    // Ignora erro de parsing
-                }
-            }
-        } catch (e) {
-            console.error("Erro ao carregar role da pessoa:", e);
         }
     }
 
@@ -429,12 +420,11 @@ function TeamPlayContent() {
         };
     }, [roomFromUrl]);
 
-    // Carregar salas abertas, role da pessoa e nome ao iniciar
+    // Carregar salas abertas e nome da sessão team-play se existir (fallback)
     useEffect(() => {
         loadOpenRooms();
-        loadPersonRole();
 
-        // Carregar nome da sessão team-play se existir
+        // Carregar nome da sessão team-play se existir (fallback)
         try {
             if (typeof window !== "undefined") {
                 const teamPlaySession = window.localStorage.getItem(
@@ -530,7 +520,12 @@ function TeamPlayContent() {
             showToast("Indica o teu nome primeiro", "error");
             return;
         }
-        const j = await call({ action: "create", game, name: name.trim() });
+        const j = await call({
+            action: "create",
+            game,
+            name: name.trim(),
+            personId: person?.id,
+        });
         if (!j?.ok) {
             showToast(j?.error || "Erro ao criar sala", "error");
             return;

@@ -12,6 +12,7 @@ export async function GET() {
             players: room.players.length,
             host: room.players[0]?.name,
             hostId: room.players[0]?.id,
+            hostPersonId: room.hostPersonId,
             createdAt: room.updatedAt,
         }));
 

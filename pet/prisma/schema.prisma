@@ -117,6 +117,7 @@ model TeamPlayRoom {
   winner       String?
   state        Json
   rematchVotes Json     @default("[]")
+  hostPersonId Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -29,6 +29,7 @@ type Room = {
     state: TicTacToeState | ChessState | Connect4State;
     rematchVotes: string[];
     updatedAt: number;
+    hostPersonId?: number;
 };
 
 function initialConnect4Board() {
@@ -369,6 +370,7 @@ export async function POST(req: Request) {
         if (action === "create") {
             const game = body?.game as GameType;
             const name = (body?.name as string)?.trim();
+            const personId = body?.personId as number | undefined;
             if (
                 !name ||
                 (game !== "tictactoe" &&
@@ -402,6 +404,7 @@ export async function POST(req: Request) {
                           : { board: initialChessBoard() },
                 rematchVotes: [],
                 updatedAt: Date.now(),
+                hostPersonId: personId,
             };
             await setRoom(roomId, room);
             return NextResponse.json({ ok: true, room: clean(room), playerId });

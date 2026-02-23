@@ -14,6 +14,7 @@ export type Room = {
     state: any;
     rematchVotes: string[];
     updatedAt: number;
+    hostPersonId?: number;
 };
 
 // Cache em memória para reduzir chamadas à DB

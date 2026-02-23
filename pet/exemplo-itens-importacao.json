@@ -1,0 +1,49 @@
+[
+  {
+    "name": "Ração Seca",
+    "type": "food",
+    "effect": {
+      "fome": 15,
+      "vida": 5
+    },
+    "price": 10
+  },
+  {
+    "name": "Paté de Frango",
+    "type": "food",
+    "effect": {
+      "fome": 20,
+      "vida": 8
+    },
+    "price": 15
+  },
+  {
+    "name": "Poção de Vida",
+    "type": "medicine",
+    "effect": {
+      "vida": 50
+    },
+    "price": 60
+  },
+  {
+    "name": "Multivitamínico",
+    "type": "vitamin",
+    "effect": {
+      "fome": 15,
+      "energia": 15,
+      "felicidade": 15,
+      "higiene": 15,
+      "vida": 15
+    },
+    "price": 40
+  },
+  {
+    "name": "Chocolate",
+    "type": "food",
+    "effect": {
+      "felicidade": 30,
+      "fome": 10
+    },
+    "price": 25
+  }
+]

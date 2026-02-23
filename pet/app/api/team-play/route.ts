@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { setRoom, getRoom, notifyClients } from "./sse/route";
+import { setRoom, getRoom } from "./storage";
 
 type GameType = "tictactoe" | "chess" | "connect4";
 type Color = "w" | "b";
@@ -332,7 +332,12 @@ function pseudoMoves(board: Board, color: Color) {
                         if (!inside(nr, nc)) continue;
                         const tp = board[nr][nc];
                         if (!tp || (pieceColor(tp) !== color && tp[1] !== "k"))
-                            out.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+                            out.push({
+                                fromR: r,
+                                fromC: c,
+                                toR: nr,
+                                toC: nc,
+                            });
                     }
                 }
             }

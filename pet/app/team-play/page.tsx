@@ -270,9 +270,21 @@ function TeamPlayContent() {
     const [selected, setSelected] = useState<{ r: number; c: number } | null>(
         null,
     );
-    const [error, setError] = useState<string | null>(null);
+    const [toast, setToast] = useState<{
+        message: string;
+        type: "error" | "success" | "info";
+    } | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [isRestoringSession, setIsRestoringSession] = useState(true);
+    const [openRooms, setOpenRooms] = useState<
+        Array<{
+            id: string;
+            game: string;
+            players: number;
+            host: string;
+        }>
+    >([]);
+    const [hasSession, setHasSession] = useState(false);
 
     useEffect(() => {
         const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -285,6 +297,14 @@ function TeamPlayContent() {
     useEffect(() => {
         if (roomFromUrl) setInviteCode(roomFromUrl);
     }, [roomFromUrl]);
+
+    function showToast(
+        message: string,
+        type: "error" | "success" | "info" = "error",
+    ) {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    }
 
     const inviteLink = useMemo(() => {
         if (!room) return "";
@@ -300,6 +320,18 @@ function TeamPlayContent() {
             body: JSON.stringify(body),
         });
         return res.json();
+    }
+
+    async function loadOpenRooms() {
+        try {
+            const res = await fetch("/api/team-play/list");
+            const j = await res.json();
+            if (j?.ok) {
+                setOpenRooms(j.rooms || []);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar salas:", e);
+        }
     }
 
     function saveSession(session: StoredTeamPlaySession) {
@@ -348,7 +380,7 @@ function TeamPlayContent() {
                 setName(parsed.name || "");
                 setPlayerId(parsed.playerId);
                 setRoom(j.room);
-                setError(null);
+                setHasSession(true);
             } finally {
                 if (!cancelled) setIsRestoringSession(false);
             }
@@ -359,6 +391,13 @@ function TeamPlayContent() {
             cancelled = true;
         };
     }, [roomFromUrl]);
+
+    // Carregar salas abertas ao iniciar e fazer polling a cada 3 segundos
+    useEffect(() => {
+        loadOpenRooms();
+        const interval = setInterval(loadOpenRooms, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     async function refresh() {
         if (!room && !roomFromUrl) return;
@@ -397,11 +436,19 @@ function TeamPlayContent() {
     }, [playerId, room?.id]);
 
     async function createRoom() {
-        setError(null);
+        if (!name.trim()) {
+            showToast("Indica o teu nome primeiro", "error");
+            return;
+        }
         const j = await call({ action: "create", game, name: name.trim() });
-        if (!j?.ok) return setError(j?.error || "Erro ao criar sala");
+        if (!j?.ok) {
+            showToast(j?.error || "Erro ao criar sala", "error");
+            return;
+        }
+        showToast("Sala criada com sucesso!", "success");
         setRoom(j.room);
         setPlayerId(j.playerId);
+        setHasSession(true);
         saveSession({
             roomId: j.room.id,
             playerId: j.playerId,
@@ -410,13 +457,24 @@ function TeamPlayContent() {
     }
 
     async function joinRoom() {
-        setError(null);
+        if (!name.trim()) {
+            showToast("Indica o teu nome primeiro", "error");
+            return;
+        }
         const roomId = inviteCode.trim().toUpperCase();
-        if (!roomId) return setError("Indica o código de convite");
+        if (!roomId) {
+            showToast("Indica o código de convite", "error");
+            return;
+        }
         const j = await call({ action: "join", roomId, name: name.trim() });
-        if (!j?.ok) return setError(j?.error || "Erro ao entrar");
+        if (!j?.ok) {
+            showToast(j?.error || "Erro ao entrar", "error");
+            return;
+        }
+        showToast("Entraste na sala!", "success");
         setRoom(j.room);
         setPlayerId(j.playerId);
+        setHasSession(true);
         saveSession({
             roomId: j.room.id,
             playerId: j.playerId,
@@ -433,10 +491,9 @@ function TeamPlayContent() {
             move,
         });
         if (!j?.ok) {
-            setError(j?.error || "Jogada inválida");
+            showToast(j?.error || "Jogada inválida", "error");
             return;
         }
-        setError(null);
         setRoom(j.room);
     }
 
@@ -444,10 +501,10 @@ function TeamPlayContent() {
         if (!room || !playerId) return;
         const j = await call({ action: "rematch", roomId: room.id, playerId });
         if (!j?.ok) {
-            setError(j?.error || "Erro ao pedir desforra");
+            showToast(j?.error || "Erro ao pedir desforra", "error");
             return;
         }
-        setError(null);
+        showToast("Desforra pedida!", "info");
         setSelected(null);
         setRoom(j.room);
     }
@@ -457,9 +514,10 @@ function TeamPlayContent() {
         setRoom(null);
         setPlayerId(null);
         setSelected(null);
-        setError(null);
+        setToast(null);
         setName("");
         setGame("tictactoe");
+        setHasSession(false);
         if (roomFromUrl) router.replace("/team-play");
     }
 
@@ -537,14 +595,112 @@ function TeamPlayContent() {
                 </p>
             </section>
 
+            {/* Lista de salas abertas */}
+            {!playerId && !isRestoringSession && openRooms.length > 0 && (
+                <div style={{ ...styles.cardCompact, marginBottom: 16 }}>
+                    <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>
+                        🎮 Salas Abertas ({openRooms.length})
+                    </h3>
+                    <div style={{ display: "grid", gap: 8 }}>
+                        {openRooms.map((r) => (
+                            <div
+                                key={r.id}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    padding: "10px 12px",
+                                    borderRadius: 10,
+                                    border: "1px solid rgba(255,255,255,0.15)",
+                                    background: "rgba(255,255,255,0.03)",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 12,
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            fontSize: 20,
+                                            background: "rgba(255,255,255,0.1)",
+                                            borderRadius: 6,
+                                            padding: "4px 8px",
+                                        }}
+                                    >
+                                        {r.game === "tictactoe"
+                                            ? "⭕"
+                                            : r.game === "chess"
+                                              ? "♞"
+                                              : "🔴"}
+                                    </span>
+                                    <div>
+                                        <div style={{ fontWeight: 700 }}>
+                                            {r.game === "tictactoe"
+                                                ? "Jogo do Galo"
+                                                : r.game === "chess"
+                                                  ? "Xadrez"
+                                                  : "4 em Linha"}
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                color: "var(--muted)",
+                                            }}
+                                        >
+                                            Host: {r.host} • {r.players}/2
+                                            jogadores
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (!name.trim()) {
+                                            showToast(
+                                                "Indica o teu nome primeiro",
+                                                "error",
+                                            );
+                                            return;
+                                        }
+                                        setInviteCode(r.id);
+                                        joinRoom();
+                                    }}
+                                    style={btn("#2563eb")}
+                                >
+                                    Entrar
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {!playerId && !isRestoringSession && (
                 <div style={styles.cardCompact}>
-                    <input
-                        placeholder="Teu nome"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        style={styles.input}
-                    />
+                    {!hasSession && (
+                        <input
+                            placeholder="Teu nome"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            style={styles.input}
+                        />
+                    )}
+                    {hasSession && (
+                        <div
+                            style={{
+                                padding: "8px 0",
+                                color: "var(--muted)",
+                                fontSize: 14,
+                            }}
+                        >
+                            👋 Olá,{" "}
+                            <strong style={{ color: "var(--foreground)" }}>
+                                {name}
+                            </strong>
+                        </div>
+                    )}
                     <select
                         value={game}
                         onChange={(e) => setGame(e.target.value as any)}
@@ -554,11 +710,7 @@ function TeamPlayContent() {
                         <option value="chess">Xadrez</option>
                         <option value="connect4">4 em Linha</option>
                     </select>
-                    <button
-                        onClick={createRoom}
-                        disabled={!name.trim()}
-                        style={btn("#16a34a")}
-                    >
+                    <button onClick={createRoom} style={btn("#16a34a")}>
                         Criar sala e gerar link
                     </button>
 
@@ -572,15 +724,9 @@ function TeamPlayContent() {
                         }
                         style={styles.input}
                     />
-                    <button
-                        onClick={joinRoom}
-                        disabled={!name.trim() || !inviteCode.trim()}
-                        style={btn("#2563eb")}
-                    >
+                    <button onClick={joinRoom} style={btn("#2563eb")}>
                         Entrar por código
                     </button>
-
-                    {error && <div style={{ color: "crimson" }}>{error}</div>}
                 </div>
             )}
 
@@ -1052,6 +1198,32 @@ function TeamPlayContent() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Toast */}
+            {toast && (
+                <div
+                    style={{
+                        position: "fixed",
+                        bottom: 24,
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        padding: "12px 20px",
+                        borderRadius: 12,
+                        background:
+                            toast.type === "error"
+                                ? "#ef4444"
+                                : toast.type === "success"
+                                  ? "#22c55e"
+                                  : "#3b82f6",
+                        color: "white",
+                        fontWeight: 700,
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+                        zIndex: 3000,
+                    }}
+                >
+                    {toast.message}
                 </div>
             )}
         </main>

@@ -282,9 +282,11 @@ function TeamPlayContent() {
             game: string;
             players: number;
             host: string;
+            hostId?: string;
         }>
     >([]);
     const [hasSession, setHasSession] = useState(false);
+    const [personRole, setPersonRole] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -331,6 +333,28 @@ function TeamPlayContent() {
             }
         } catch (e) {
             console.error("Erro ao carregar salas:", e);
+        }
+    }
+
+    async function loadPersonRole() {
+        try {
+            // Tenta obter o role da pessoa guardada no localStorage
+            if (typeof window === "undefined") return;
+            const sessionRaw = window.localStorage.getItem(
+                "pet-companion-session-v1",
+            );
+            if (sessionRaw) {
+                try {
+                    const session = JSON.parse(sessionRaw);
+                    if (session?.person?.role) {
+                        setPersonRole(session.person.role);
+                    }
+                } catch {
+                    // Ignora erro de parsing
+                }
+            }
+        } catch (e) {
+            console.error("Erro ao carregar role da pessoa:", e);
         }
     }
 
@@ -381,6 +405,14 @@ function TeamPlayContent() {
                 setPlayerId(parsed.playerId);
                 setRoom(j.room);
                 setHasSession(true);
+
+                // Mostra toast se houver jogo em curso
+                if (!j.room.winner) {
+                    showToast(
+                        `Jogo em curso: ${j.room.game === "chess" ? "Xadrez" : j.room.game === "connect4" ? "4 em Linha" : "Jogo do Galo"}`,
+                        "info",
+                    );
+                }
             } finally {
                 if (!cancelled) setIsRestoringSession(false);
             }
@@ -392,9 +424,10 @@ function TeamPlayContent() {
         };
     }, [roomFromUrl]);
 
-    // Carregar salas abertas ao iniciar e fazer polling a cada 3 segundos
+    // Carregar salas abertas e role da pessoa ao iniciar
     useEffect(() => {
         loadOpenRooms();
+        loadPersonRole();
         const interval = setInterval(loadOpenRooms, 3000);
         return () => clearInterval(interval);
     }, []);
@@ -436,6 +469,14 @@ function TeamPlayContent() {
     }, [playerId, room?.id]);
 
     async function createRoom() {
+        // Verifica se já tem um jogo em curso
+        if (hasSession && room && !room.winner) {
+            showToast(
+                "Já tens um jogo em curso! Volta ao jogo atual ou sai para criar nova sala.",
+                "error",
+            );
+            return;
+        }
         if (!name.trim()) {
             showToast("Indica o teu nome primeiro", "error");
             return;
@@ -457,6 +498,14 @@ function TeamPlayContent() {
     }
 
     async function joinRoom() {
+        // Verifica se já tem um jogo em curso
+        if (hasSession && room && !room.winner) {
+            showToast(
+                "Já tens um jogo em curso! Volta ao jogo atual ou sai para entrar noutro.",
+                "error",
+            );
+            return;
+        }
         if (!name.trim()) {
             showToast("Indica o teu nome primeiro", "error");
             return;
@@ -507,6 +556,30 @@ function TeamPlayContent() {
         showToast("Desforra pedida!", "info");
         setSelected(null);
         setRoom(j.room);
+    }
+
+    async function closeRoom(roomId: string) {
+        if (!playerId) {
+            showToast("Precisas de estar numa sessão", "error");
+            return;
+        }
+        const j = await call({
+            action: "close",
+            roomId,
+            playerId,
+            personRole,
+        });
+        if (!j?.ok) {
+            showToast(j?.error || "Erro ao fechar sala", "error");
+            return;
+        }
+        showToast("Sala fechada com sucesso!", "success");
+        // Remove a sala da lista
+        setOpenRooms((prev) => prev.filter((r) => r.id !== roomId));
+        // Se era a sala atual, limpa a sessão
+        if (room?.id === roomId) {
+            backToLobby();
+        }
     }
 
     function backToLobby() {
@@ -595,6 +668,73 @@ function TeamPlayContent() {
                 </p>
             </section>
 
+            {/* Banner de jogo em curso */}
+            {hasSession && room && !room.winner && (
+                <div
+                    style={{
+                        ...styles.cardCompact,
+                        marginBottom: 16,
+                        background:
+                            "linear-gradient(135deg, rgba(34,197,94,0.15), rgba(22,163,74,0.1))",
+                        border: "1px solid rgba(34,197,94,0.3)",
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                            }}
+                        >
+                            <span style={{ fontSize: 24 }}>🎮</span>
+                            <div>
+                                <div style={{ fontWeight: 700, fontSize: 15 }}>
+                                    Jogo em Curso -{" "}
+                                    {room.game === "chess"
+                                        ? "Xadrez"
+                                        : room.game === "connect4"
+                                          ? "4 em Linha"
+                                          : "Jogo do Galo"}
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: 12,
+                                        color: "var(--muted)",
+                                    }}
+                                >
+                                    Sala: <strong>{room.id}</strong> • És{" "}
+                                    {me?.color === "X" || me?.color === "w"
+                                        ? "X/Brancas"
+                                        : "O/Pretas"}
+                                    {room.turn === me?.color
+                                        ? " • 🟢 É o teu turno!"
+                                        : " • ⏳ Aguarda o adversário"}
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                // Scroll para o jogo
+                                window.scrollTo({
+                                    top: 500,
+                                    behavior: "smooth",
+                                });
+                            }}
+                            style={btn("#22c55e")}
+                        >
+                            Ver Jogo
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Lista de salas abertas */}
             {!playerId && !isRestoringSession && openRooms.length > 0 && (
                 <div style={{ ...styles.cardCompact, marginBottom: 16 }}>
@@ -655,22 +795,47 @@ function TeamPlayContent() {
                                         </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        if (!name.trim()) {
-                                            showToast(
-                                                "Indica o teu nome primeiro",
-                                                "error",
-                                            );
-                                            return;
-                                        }
-                                        setInviteCode(r.id);
-                                        joinRoom();
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
                                     }}
-                                    style={btn("#2563eb")}
                                 >
-                                    Entrar
-                                </button>
+                                    <button
+                                        onClick={() => {
+                                            if (!name.trim()) {
+                                                showToast(
+                                                    "Indica o teu nome primeiro",
+                                                    "error",
+                                                );
+                                                return;
+                                            }
+                                            setInviteCode(r.id);
+                                            joinRoom();
+                                        }}
+                                        style={btn("#2563eb")}
+                                    >
+                                        Entrar
+                                    </button>
+                                    {/* Botão de fechar sala - visível para dono, admin ou gestor */}
+                                    {(playerId &&
+                                        r.hostId &&
+                                        playerId === r.hostId) ||
+                                    personRole === "admin" ||
+                                    personRole === "gestor" ? (
+                                        <button
+                                            onClick={() => closeRoom(r.id)}
+                                            style={{
+                                                ...btn("#ef4444"),
+                                                padding: "10px 12px",
+                                            }}
+                                            title="Fechar sala"
+                                        >
+                                            ✕
+                                        </button>
+                                    ) : null}
+                                </div>
                             </div>
                         ))}
                     </div>

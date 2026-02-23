@@ -1,8 +1,13 @@
-type GameType = "tictactoe" | "chess" | "connect4";
+import {
+    getRoom as getRoomDB,
+    upsertRoom,
+    getOpenRooms as getOpenRoomsDB,
+    deleteRoom as deleteRoomDB,
+} from "../../../lib/team-play";
 
 export type Room = {
     id: string;
-    game: GameType;
+    game: "tictactoe" | "chess" | "connect4";
     players: Array<{ id: string; name: string; color: "X" | "O" | "w" | "b" }>;
     turn: "X" | "O" | "w" | "b";
     winner: "X" | "O" | "w" | "b" | "draw" | null;
@@ -11,22 +16,71 @@ export type Room = {
     updatedAt: number;
 };
 
-// Armazenamento global partilhado
-const rooms = new Map<string, Room>();
+// Cache em memória para reduzir chamadas à DB
+const roomCache = new Map<string, { room: Room; timestamp: number }>();
+const CACHE_TTL = 5000; // 5 segundos
+
 const clients = new Map<string, Set<ReadableStreamDefaultController>>();
 
-export function getRoom(roomId: string): Room | undefined {
-    return rooms.get(roomId);
+function getCachedRoom(roomId: string): Room | null {
+    const cached = roomCache.get(roomId);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.room;
+    }
+    return null;
 }
 
-export function setRoom(roomId: string, room: Room) {
-    rooms.set(roomId, room);
-    notifyClients(roomId, room);
+function setCachedRoom(roomId: string, room: Room) {
+    roomCache.set(roomId, { room, timestamp: Date.now() });
 }
 
-export function deleteRoom(roomId: string) {
-    rooms.delete(roomId);
-    notifyClients(roomId, null);
+export async function getRoom(roomId: string): Promise<Room | undefined> {
+    // Tenta cache primeiro
+    const cached = getCachedRoom(roomId);
+    if (cached) {
+        return cached;
+    }
+
+    // Busca na DB
+    const dbRoom = await getRoomDB(roomId);
+    if (!dbRoom) {
+        roomCache.delete(roomId);
+        return undefined;
+    }
+
+    const room: Room = {
+        id: dbRoom.id,
+        game: dbRoom.game as any,
+        players: dbRoom.players,
+        turn: dbRoom.turn as any,
+        winner: dbRoom.winner as any,
+        state: dbRoom.state,
+        rematchVotes: dbRoom.rematchVotes,
+        updatedAt: dbRoom.updatedAt.getTime(),
+    };
+
+    setCachedRoom(roomId, room);
+    return room;
+}
+
+export async function setRoom(roomId: string, room: Room) {
+    try {
+        await upsertRoom(room);
+        setCachedRoom(roomId, room);
+        notifyClients(roomId, room);
+    } catch (error) {
+        console.error("Erro ao guardar sala na DB:", error);
+    }
+}
+
+export async function deleteRoom(roomId: string) {
+    try {
+        await deleteRoomDB(roomId);
+        roomCache.delete(roomId);
+        notifyClients(roomId, null);
+    } catch (error) {
+        console.error("Erro ao eliminar sala da DB:", error);
+    }
 }
 
 export function notifyClients(roomId: string, room: Room | null) {
@@ -46,14 +100,20 @@ export function notifyClients(roomId: string, room: Room | null) {
     });
 }
 
-export function addClient(roomId: string, controller: ReadableStreamDefaultController) {
+export function addClient(
+    roomId: string,
+    controller: ReadableStreamDefaultController,
+) {
     if (!clients.has(roomId)) {
         clients.set(roomId, new Set());
     }
     clients.get(roomId)!.add(controller);
 }
 
-export function removeClient(roomId: string, controller: ReadableStreamDefaultController) {
+export function removeClient(
+    roomId: string,
+    controller: ReadableStreamDefaultController,
+) {
     const roomClients = clients.get(roomId);
     if (roomClients) {
         roomClients.delete(controller);
@@ -63,10 +123,32 @@ export function removeClient(roomId: string, controller: ReadableStreamDefaultCo
     }
 }
 
-export function hasRoom(roomId: string): boolean {
-    return rooms.has(roomId);
+export async function hasRoom(roomId: string): Promise<boolean> {
+    const cached = getCachedRoom(roomId);
+    if (cached) return true;
+
+    const dbRoom = await getRoomDB(roomId);
+    return !!dbRoom;
 }
 
-export function getAllRooms(): Map<string, Room> {
+export async function getAllRooms(): Promise<Map<string, Room>> {
+    const dbRooms = await getOpenRoomsDB();
+    const rooms = new Map<string, Room>();
+
+    dbRooms.forEach((dbRoom) => {
+        const room: Room = {
+            id: dbRoom.id,
+            game: dbRoom.game as any,
+            players: dbRoom.players,
+            turn: dbRoom.turn as any,
+            winner: dbRoom.winner as any,
+            state: dbRoom.state,
+            rematchVotes: dbRoom.rematchVotes,
+            updatedAt: dbRoom.updatedAt.getTime(),
+        };
+        rooms.set(dbRoom.id, room);
+        setCachedRoom(dbRoom.id, room);
+    });
+
     return rooms;
 }

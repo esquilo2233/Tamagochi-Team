@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { setRoom, getRoom } from "./storage";
+import { setRoom, getRoom, deleteRoom } from "./storage";
 
 type GameType = "tictactoe" | "chess" | "connect4";
 type Color = "w" | "b";
@@ -403,14 +403,14 @@ export async function POST(req: Request) {
                 rematchVotes: [],
                 updatedAt: Date.now(),
             };
-            setRoom(roomId, room);
+            await setRoom(roomId, room);
             return NextResponse.json({ ok: true, room: clean(room), playerId });
         }
 
         if (action === "join") {
             const roomId = body?.roomId as string;
             const name = (body?.name as string)?.trim();
-            const room = getRoom(roomId);
+            const room = await getRoom(roomId);
             if (!room || !name)
                 return NextResponse.json(
                     { ok: false, error: "Sala não encontrada" },
@@ -428,13 +428,13 @@ export async function POST(req: Request) {
                 color: room.game === "tictactoe" ? "O" : "b",
             });
             room.updatedAt = Date.now();
-            setRoom(roomId, room);
+            await setRoom(roomId, room);
             return NextResponse.json({ ok: true, room: clean(room), playerId });
         }
 
         if (action === "get") {
             const roomId = body?.roomId as string;
-            const room = getRoom(roomId);
+            const room = await getRoom(roomId);
             if (!room)
                 return NextResponse.json(
                     { ok: false, error: "Sala não encontrada" },
@@ -446,7 +446,7 @@ export async function POST(req: Request) {
         if (action === "move") {
             const roomId = body?.roomId as string;
             const playerId = body?.playerId as string;
-            const room = getRoom(roomId);
+            const room = await getRoom(roomId);
             if (!room)
                 return NextResponse.json(
                     { ok: false, error: "Sala não encontrada" },
@@ -552,14 +552,14 @@ export async function POST(req: Request) {
             }
 
             room.updatedAt = Date.now();
-            setRoom(roomId, room);
+            await setRoom(roomId, room);
             return NextResponse.json({ ok: true, room: clean(room) });
         }
 
         if (action === "rematch") {
             const roomId = body?.roomId as string;
             const playerId = body?.playerId as string;
-            const room = getRoom(roomId);
+            const room = await getRoom(roomId);
             if (!room)
                 return NextResponse.json(
                     { ok: false, error: "Sala não encontrada" },
@@ -585,13 +585,42 @@ export async function POST(req: Request) {
 
             if (room.rematchVotes.length >= 2) {
                 resetRoomForRematch(room);
-                setRoom(roomId, room);
+                await setRoom(roomId, room);
             } else {
                 room.updatedAt = Date.now();
-                setRoom(roomId, room);
+                await setRoom(roomId, room);
             }
 
             return NextResponse.json({ ok: true, room: clean(room) });
+        }
+
+        if (action === "close") {
+            const roomId = body?.roomId as string;
+            const playerId = body?.playerId as string;
+            const personRole = body?.personRole as string | undefined;
+            const room = await getRoom(roomId);
+            if (!room)
+                return NextResponse.json(
+                    { ok: false, error: "Sala não encontrada" },
+                    { status: 404 },
+                );
+
+            // Verifica se é o dono (primeiro jogador) ou tem role de admin/gestor
+            const isOwner = room.players[0]?.id === playerId;
+            const isAdmin = personRole === "admin" || personRole === "gestor";
+
+            if (!isOwner && !isAdmin) {
+                return NextResponse.json(
+                    {
+                        ok: false,
+                        error: "Não tens permissão para fechar esta sala",
+                    },
+                    { status: 403 },
+                );
+            }
+
+            await deleteRoom(roomId);
+            return NextResponse.json({ ok: true });
         }
 
         return NextResponse.json(

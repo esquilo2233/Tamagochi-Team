@@ -108,3 +108,17 @@ model SamuraiSession {
 
   @@map("samurai_sessions")
 }
+
+model TeamPlayRoom {
+  id           String   @id
+  game         String
+  players      Json
+  turn         String
+  winner       String?
+  state        Json
+  rematchVotes Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("team_play_rooms")
+}

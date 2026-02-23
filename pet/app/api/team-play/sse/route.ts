@@ -14,12 +14,12 @@ export async function GET(req: NextRequest) {
     }
 
     const stream = new ReadableStream({
-        start(controller) {
+        async start(controller) {
             // Adiciona este cliente à lista de listeners da sala
             addClient(roomId, controller);
 
             // Envia estado atual imediatamente
-            const room = getRoom(roomId);
+            const room = await getRoom(roomId);
             if (room) {
                 controller.enqueue(
                     `data: ${JSON.stringify({ ok: true, room })}\n\n`,

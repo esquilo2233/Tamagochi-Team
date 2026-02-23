@@ -339,7 +339,7 @@ function TeamPlayContent() {
 
     async function loadPersonRole() {
         try {
-            // Tenta obter o role da pessoa guardada no localStorage
+            // Tenta obter o role e nome da pessoa guardada no localStorage
             if (typeof window === "undefined") return;
             const sessionRaw = window.localStorage.getItem(
                 "pet-companion-session-v1",
@@ -349,6 +349,10 @@ function TeamPlayContent() {
                     const session = JSON.parse(sessionRaw);
                     if (session?.person?.role) {
                         setPersonRole(session.person.role);
+                    }
+                    // Puxa o nome da pessoa se disponível
+                    if (session?.person?.name && !name) {
+                        setName(session.person.name);
                     }
                 } catch {
                     // Ignora erro de parsing
@@ -425,10 +429,30 @@ function TeamPlayContent() {
         };
     }, [roomFromUrl]);
 
-    // Carregar salas abertas e role da pessoa ao iniciar
+    // Carregar salas abertas, role da pessoa e nome ao iniciar
     useEffect(() => {
         loadOpenRooms();
         loadPersonRole();
+
+        // Carregar nome da sessão team-play se existir
+        try {
+            if (typeof window !== "undefined") {
+                const teamPlaySession = window.localStorage.getItem(
+                    TEAM_PLAY_SESSION_KEY,
+                );
+                if (teamPlaySession) {
+                    const parsed = JSON.parse(
+                        teamPlaySession,
+                    ) as StoredTeamPlaySession;
+                    if (parsed?.name && !name) {
+                        setName(parsed.name);
+                    }
+                }
+            }
+        } catch {
+            // Ignora erro
+        }
+
         const interval = setInterval(loadOpenRooms, 3000);
         return () => clearInterval(interval);
     }, []);

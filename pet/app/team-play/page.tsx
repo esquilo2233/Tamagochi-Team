@@ -612,14 +612,18 @@ function TeamPlayContent() {
     }
 
     async function closeRoom(roomId: string) {
-        if (!playerId) {
-            showToast("Precisas de estar numa sessão", "error");
+        // Admins/gestores podem fechar sem estar na sala
+        if (!playerId && personRole !== "admin" && personRole !== "gestor") {
+            showToast(
+                "Precisas de estar numa sessão ou ser admin/gestor",
+                "error",
+            );
             return;
         }
         const j = await call({
             action: "close",
             roomId,
-            playerId,
+            playerId: playerId || "",
             personRole,
         });
         if (!j?.ok) {
@@ -855,6 +859,33 @@ function TeamPlayContent() {
                                         gap: 8,
                                     }}
                                 >
+                                    {/* Botão Ver - Espreitar o jogo */}
+                                    <button
+                                        onClick={() => {
+                                            // Scroll para a área do jogo
+                                            const gameArea =
+                                                document.querySelector(
+                                                    "[data-game-area]",
+                                                );
+                                            if (gameArea) {
+                                                gameArea.scrollIntoView({
+                                                    behavior: "smooth",
+                                                    block: "center",
+                                                });
+                                            }
+                                            showToast(
+                                                `A ver sala ${r.id}`,
+                                                "info",
+                                            );
+                                        }}
+                                        style={{
+                                            ...btn("#6b7280"),
+                                            padding: "10px 12px",
+                                        }}
+                                        title="Ver jogo"
+                                    >
+                                        👁️
+                                    </button>
                                     <button
                                         onClick={() => {
                                             if (!name.trim()) {
@@ -957,7 +988,7 @@ function TeamPlayContent() {
             )}
 
             {room && playerId && (
-                <div style={{ marginTop: 16 }}>
+                <div data-game-area style={{ marginTop: 16 }}>
                     <div style={styles.card}>
                         <div
                             style={{

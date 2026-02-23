@@ -11,6 +11,7 @@ type Room = {
     winner: string | null;
     state: any;
     rematchVotes?: string[];
+    updatedAt?: number;
 };
 
 type Color = "w" | "b";
@@ -442,6 +443,9 @@ function TeamPlayContent() {
     useEffect(() => {
         if (!playerId || !room?.id) return;
 
+        let lastUpdateTime = room.updatedAt ?? 0;
+        let syncTimeout: NodeJS.Timeout | null = null;
+
         // Conectar ao SSE para atualizações em tempo real
         const eventSource = new EventSource(
             `/api/team-play/sse?roomId=${room.id}`,
@@ -451,7 +455,27 @@ function TeamPlayContent() {
             try {
                 const data = JSON.parse(event.data);
                 if (data?.ok && data?.room) {
-                    setRoom(data.room);
+                    const newRoom = data.room;
+
+                    // Deteta se o jogo foi resetado (desforra)
+                    if (
+                        newRoom.updatedAt > lastUpdateTime &&
+                        !newRoom.winner &&
+                        room.winner
+                    ) {
+                        console.log("Desforra detetada! A sincronizar...");
+                        showToast("🔄 Desforra iniciada!", "success");
+                        setSelected(null);
+
+                        // Força refresh adicional após 500ms para garantir sincronização
+                        if (syncTimeout) clearTimeout(syncTimeout);
+                        syncTimeout = setTimeout(async () => {
+                            await refresh();
+                        }, 500);
+                    }
+
+                    lastUpdateTime = newRoom.updatedAt;
+                    setRoom(newRoom);
                 }
             } catch (e) {
                 console.error("Erro ao processar atualização SSE:", e);
@@ -459,18 +483,19 @@ function TeamPlayContent() {
         };
 
         eventSource.onerror = () => {
-            // SSE reconecta automaticamente, mas podemos fazer fallback para polling se necessário
-            console.log("SSE desconectado, tentando reconectar...");
+            // SSE reconecta automaticamente
+            console.log("SSE reconectando...");
         };
 
         return () => {
             eventSource.close();
+            if (syncTimeout) clearTimeout(syncTimeout);
         };
     }, [playerId, room?.id]);
 
     async function createRoom() {
-        // Verifica se já tem um jogo em curso
-        if (hasSession && room && !room.winner) {
+        // Verifica se já tem um jogo em curso (só bloqueia se já estiver numa sala ativa)
+        if (playerId && room && !room.winner) {
             showToast(
                 "Já tens um jogo em curso! Volta ao jogo atual ou sai para criar nova sala.",
                 "error",
@@ -498,8 +523,8 @@ function TeamPlayContent() {
     }
 
     async function joinRoom() {
-        // Verifica se já tem um jogo em curso
-        if (hasSession && room && !room.winner) {
+        // Verifica se já tem um jogo em curso (só bloqueia se já estiver numa sala ativa)
+        if (playerId && room && !room.winner) {
             showToast(
                 "Já tens um jogo em curso! Volta ao jogo atual ou sai para entrar noutro.",
                 "error",
@@ -553,7 +578,16 @@ function TeamPlayContent() {
             showToast(j?.error || "Erro ao pedir desforra", "error");
             return;
         }
-        showToast("Desforra pedida!", "info");
+
+        // Se ambos votaram a desforra, o jogo foi resetado
+        if (j.room.rematchVotes?.length >= 2) {
+            showToast("Desforra aceite! A reiniciar jogo...", "success");
+            // Força refresh imediato para sincronizar estado
+            await refresh();
+        } else {
+            showToast("Desforra pedida! A aguardar adversário...", "info");
+        }
+
         setSelected(null);
         setRoom(j.room);
     }
@@ -735,8 +769,8 @@ function TeamPlayContent() {
                 </div>
             )}
 
-            {/* Lista de salas abertas */}
-            {!playerId && !isRestoringSession && openRooms.length > 0 && (
+            {/* Lista de salas abertas - sempre visível exceto quando já estás num jogo */}
+            {!isRestoringSession && openRooms.length > 0 && (
                 <div style={{ ...styles.cardCompact, marginBottom: 16 }}>
                     <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>
                         🎮 Salas Abertas ({openRooms.length})

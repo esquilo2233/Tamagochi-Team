@@ -28,8 +28,61 @@ export default function ItemsPage() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+
+  // Verificar permissões
+  useEffect(() => {
+    fetch("/api/session")
+      .then((r) => r.json())
+      .then((data) => {
+        const person = data.person;
+        const role = (person?.role ?? "").trim().toLowerCase();
+        setHasAccess(role === "admin" || role === "gestor");
+      })
+      .catch(() => setHasAccess(false));
+  }, []);
 
   const isEditing = useMemo(() => form.id !== null, [form.id]);
+
+  // Mostrar loading enquanto verifica permissões
+  if (hasAccess === null) {
+    return (
+      <main style={{ maxWidth: 760, margin: "24px auto", padding: 16 }}>
+        <div
+          style={{ padding: 16, borderRadius: 8, background: "var(--card-bg)" }}
+        >
+          A verificar permissões...
+        </div>
+      </main>
+    );
+  }
+
+  // Negar acesso se não for admin/gestor
+  if (!hasAccess) {
+    return (
+      <main style={{ maxWidth: 760, margin: "24px auto", padding: 16 }}>
+        <div style={{ marginBottom: 16 }}>
+          <Link
+            href="/admin"
+            style={{ color: "var(--accent)", textDecoration: "underline" }}
+          >
+            ← Voltar ao Admin
+          </Link>
+        </div>
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 8,
+            background: "#fff3cd",
+            color: "#856404",
+          }}
+        >
+          Sem permissão para aceder à gestão de itens. Apenas{" "}
+          <strong>admin</strong> e <strong>gestor</strong>.
+        </div>
+      </main>
+    );
+  }
 
   async function load() {
     setLoading(true);

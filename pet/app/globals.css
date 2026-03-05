@@ -4,100 +4,130 @@
 @source "../lib/**/*.{js,ts,jsx,tsx,mdx}";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --card-bg: #ffffff;
-  --muted: #666666;
-  --muted-2: #999999;
-  --accent: #0984e3;
-  --card-border: #eeeeee;
-  --input-bg: #ffffff;
-  --input-text: #171717;
-  --input-border: #d1d5db;
-  --input-placeholder: #8a8a8a;
+    --background: #ffffff;
+    --foreground: #171717;
+    --card-bg: #ffffff;
+    --muted: #666666;
+    --muted-2: #999999;
+    --accent: #0984e3;
+    --card-border: #eeeeee;
+    --input-bg: #ffffff;
+    --input-text: #171717;
+    --input-border: #d1d5db;
+    --input-placeholder: #8a8a8a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 }
 
 /* Prefer system dark mode but use a soft gray background (not pure black) */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #2b2b2b; /* soft gray instead of black */
+    :root {
+        --background: #2b2b2b; /* soft gray instead of black */
+        --foreground: #e6e6e6;
+        --card-bg: #323232;
+        --muted: #bdbdbd;
+        --muted-2: #d1d5db;
+        --accent: #58a6ff;
+        --card-border: #3a3a3a;
+    }
+}
+
+/* also support explicit data-theme attribute for JS toggling */
+:root[data-theme="dark"] {
+    --background: #2b2b2b;
     --foreground: #e6e6e6;
     --card-bg: #323232;
     --muted: #bdbdbd;
     --muted-2: #d1d5db;
     --accent: #58a6ff;
     --card-border: #3a3a3a;
-  }
+    --input-bg: #2f2f2f;
+    --input-text: #f0f0f0;
+    --input-border: #4b5563;
+    --input-placeholder: #9ca3af;
+}
+:root[data-theme="light"] {
+    --background: #ffffff;
+    --foreground: #171717;
+    --card-bg: #ffffff;
+    --muted: #666666;
+    --muted-2: #999999;
+    --accent: #0984e3;
+    --card-border: #eeeeee;
+    --input-bg: #ffffff;
+    --input-text: #171717;
+    --input-border: #d1d5db;
+    --input-placeholder: #8a8a8a;
 }
 
-/* also support explicit data-theme attribute for JS toggling */
-:root[data-theme='dark'] {
-  --background: #2b2b2b;
-  --foreground: #e6e6e6;
-  --card-bg: #323232;
-  --muted: #bdbdbd;
-  --muted-2: #d1d5db;
-  --accent: #58a6ff;
-  --card-border: #3a3a3a;
-  --input-bg: #2f2f2f;
-  --input-text: #f0f0f0;
-  --input-border: #4b5563;
-  --input-placeholder: #9ca3af;
-}
-:root[data-theme='light'] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --card-bg: #ffffff;
-  --muted: #666666;
-  --muted-2: #999999;
-  --accent: #0984e3;
-  --card-border: #eeeeee;
-  --input-bg: #ffffff;
-  --input-text: #171717;
-  --input-border: #d1d5db;
-  --input-placeholder: #8a8a8a;
-}
-
-html, body {
-  width: 100%;
-  margin: 0;
-  padding: 0;
+html,
+body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  transition: background-color 180ms ease, color 180ms ease;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+    transition:
+        background-color 180ms ease,
+        color 180ms ease;
 }
 
 /* sensible defaults for common elements */
 .card {
-  background: var(--card-bg);
-  color: var(--foreground);
-  transition: background-color 180ms ease, color 180ms ease;
+    background: var(--card-bg);
+    color: var(--foreground);
+    transition:
+        background-color 180ms ease,
+        color 180ms ease;
 }
-.muted { color: var(--muted); }
+.muted {
+    color: var(--muted);
+}
 
-input, select, textarea {
-  background: var(--input-bg);
-  color: var(--input-text);
-  border: 1px solid var(--input-border);
+input,
+select,
+textarea {
+    background: var(--input-bg);
+    color: var(--input-text);
+    border: 1px solid var(--input-border);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--input-placeholder);
+    color: var(--input-placeholder);
 }
 
 select option {
-  background: var(--input-bg);
-  color: var(--input-text);
+    background: var(--input-bg);
+    color: var(--input-text);
+}
+
+/* Dark mode styles for data-theme-container */
+[data-theme-container] {
+    background: var(--background);
+    min-height: 100vh;
+}
+
+/* Card styles */
+[data-theme-card] {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+}
+
+/* Text colors */
+[data-theme-text] {
+    color: var(--foreground);
+}
+
+[data-theme-text-muted] {
+    color: var(--muted);
 }

@@ -123,3 +123,47 @@ model TeamPlayRoom {
 
   @@map("team_play_rooms")
 }
+
+model BugReport {
+  id          Int           @id @default(autoincrement())
+  title       String
+  description String
+  severity    String        @default("medium")
+  status      String        @default("open")
+  reporter    String?
+  email       String?
+  url         String?
+  files       BugReportFile[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("bug_reports")
+}
+
+model BugReportFile {
+  id          Int       @id @default(autoincrement())
+  bugReportId Int
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  createdAt   DateTime  @default(now())
+
+  bugReport BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+
+  @@index([bugReportId])
+  @@map("bug_report_files")
+}
+
+model SystemLog {
+  id        Int      @id @default(autoincrement())
+  level     String   @default("info")
+  message   String
+  context   Json?
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
+  @@map("system_logs")
+}

@@ -44,7 +44,9 @@ export default function ItemsPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   function mapEffectFromForm(): Effect {
     const effect: Effect = {};
@@ -139,34 +141,81 @@ export default function ItemsPage() {
   return (
     <main style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
       <div style={{ marginBottom: 12 }}>
-        <Link href="/cenas" style={{ color: "var(--accent)", textDecoration: "underline" }}>
-          ← Voltar à Cenas
+        <Link
+          href="/admin"
+          style={{ color: "var(--accent)", textDecoration: "underline" }}
+        >
+          ← Voltar ao Admin
         </Link>
       </div>
 
       <h2 style={{ marginTop: 0 }}>Gestão de Itens</h2>
-      {notice && <div style={{ marginBottom: 8, padding: 8, borderRadius: 6, background: "#e6fffa", color: "#065f46" }}>{notice}</div>}
+      {notice && (
+        <div
+          style={{
+            marginBottom: 8,
+            padding: 8,
+            borderRadius: 6,
+            background: "#e6fffa",
+            color: "#065f46",
+          }}
+        >
+          {notice}
+        </div>
+      )}
 
-      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 12, marginBottom: 16 }}>
+      <div
+        style={{
+          background: "var(--card-bg)",
+          border: "1px solid var(--card-border)",
+          borderRadius: 10,
+          padding: 12,
+          marginBottom: 16,
+        }}
+      >
         <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13 }}>
-          Preenche os campos abaixo para criar/editar um item. Valores positivos aumentam stats, negativos reduzem.
+          Preenche os campos abaixo para criar/editar um item. Valores positivos
+          aumentam stats, negativos reduzem.
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+        >
           <label style={fieldWrapStyle}>
             <span style={fieldLabelStyle}>Nome</span>
-            <small style={fieldHelpStyle}>Nome visível na loja/inventário.</small>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Kit Médico" style={inputStyle} />
+            <small style={fieldHelpStyle}>
+              Nome visível na loja/inventário.
+            </small>
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Ex: Kit Médico"
+              style={inputStyle}
+            />
           </label>
           <label style={fieldWrapStyle}>
             <span style={fieldLabelStyle}>Preço</span>
             <small style={fieldHelpStyle}>Custo em moedas para comprar.</small>
-            <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} placeholder="Ex: 30" style={inputStyle} />
+            <input
+              type="number"
+              value={form.price}
+              onChange={(e) =>
+                setForm({ ...form, price: Number(e.target.value) })
+              }
+              placeholder="Ex: 30"
+              style={inputStyle}
+            />
           </label>
 
           <label style={fieldWrapStyle}>
             <span style={fieldLabelStyle}>Tipo</span>
-            <small style={fieldHelpStyle}>Categoria usada para organização.</small>
-            <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={inputStyle}>
+            <small style={fieldHelpStyle}>
+              Categoria usada para organização.
+            </small>
+            <select
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}
+              style={inputStyle}
+            >
               <option value="food">Alimento</option>
               <option value="remedy">Remédio</option>
               <option value="hygiene">Higiene</option>
@@ -176,14 +225,81 @@ export default function ItemsPage() {
           </label>
           <div />
 
-          <label style={fieldWrapStyle}><span style={fieldLabelStyle}>Efeito Fome</span><small style={fieldHelpStyle}>Quanto altera a fome.</small><input type="number" value={form.hunger} onChange={(e) => setForm({ ...form, hunger: Number(e.target.value) })} placeholder="Ex: +15" style={inputStyle} /></label>
-          <label style={fieldWrapStyle}><span style={fieldLabelStyle}>Efeito Energia</span><small style={fieldHelpStyle}>Quanto altera a energia.</small><input type="number" value={form.energy} onChange={(e) => setForm({ ...form, energy: Number(e.target.value) })} placeholder="Ex: +10" style={inputStyle} /></label>
-          <label style={fieldWrapStyle}><span style={fieldLabelStyle}>Efeito Felicidade</span><small style={fieldHelpStyle}>Quanto altera a felicidade.</small><input type="number" value={form.happiness} onChange={(e) => setForm({ ...form, happiness: Number(e.target.value) })} placeholder="Ex: +5" style={inputStyle} /></label>
-          <label style={fieldWrapStyle}><span style={fieldLabelStyle}>Efeito Higiene</span><small style={fieldHelpStyle}>Quanto altera a higiene.</small><input type="number" value={form.hygiene} onChange={(e) => setForm({ ...form, hygiene: Number(e.target.value) })} placeholder="Ex: +20" style={inputStyle} /></label>
-          <label style={fieldWrapStyle}><span style={fieldLabelStyle}>Efeito Vida</span><small style={fieldHelpStyle}>Quanto altera a vida.</small><input type="number" value={form.life} onChange={(e) => setForm({ ...form, life: Number(e.target.value) })} placeholder="Ex: +8" style={inputStyle} /></label>
+          <label style={fieldWrapStyle}>
+            <span style={fieldLabelStyle}>Efeito Fome</span>
+            <small style={fieldHelpStyle}>Quanto altera a fome.</small>
+            <input
+              type="number"
+              value={form.hunger}
+              onChange={(e) =>
+                setForm({ ...form, hunger: Number(e.target.value) })
+              }
+              placeholder="Ex: +15"
+              style={inputStyle}
+            />
+          </label>
+          <label style={fieldWrapStyle}>
+            <span style={fieldLabelStyle}>Efeito Energia</span>
+            <small style={fieldHelpStyle}>Quanto altera a energia.</small>
+            <input
+              type="number"
+              value={form.energy}
+              onChange={(e) =>
+                setForm({ ...form, energy: Number(e.target.value) })
+              }
+              placeholder="Ex: +10"
+              style={inputStyle}
+            />
+          </label>
+          <label style={fieldWrapStyle}>
+            <span style={fieldLabelStyle}>Efeito Felicidade</span>
+            <small style={fieldHelpStyle}>Quanto altera a felicidade.</small>
+            <input
+              type="number"
+              value={form.happiness}
+              onChange={(e) =>
+                setForm({ ...form, happiness: Number(e.target.value) })
+              }
+              placeholder="Ex: +5"
+              style={inputStyle}
+            />
+          </label>
+          <label style={fieldWrapStyle}>
+            <span style={fieldLabelStyle}>Efeito Higiene</span>
+            <small style={fieldHelpStyle}>Quanto altera a higiene.</small>
+            <input
+              type="number"
+              value={form.hygiene}
+              onChange={(e) =>
+                setForm({ ...form, hygiene: Number(e.target.value) })
+              }
+              placeholder="Ex: +20"
+              style={inputStyle}
+            />
+          </label>
+          <label style={fieldWrapStyle}>
+            <span style={fieldLabelStyle}>Efeito Vida</span>
+            <small style={fieldHelpStyle}>Quanto altera a vida.</small>
+            <input
+              type="number"
+              value={form.life}
+              onChange={(e) =>
+                setForm({ ...form, life: Number(e.target.value) })
+              }
+              placeholder="Ex: +8"
+              style={inputStyle}
+            />
+          </label>
         </div>
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            justifyContent: "flex-end",
+            marginTop: 10,
+          }}
+        >
           {isEditing && (
             <button onClick={() => setForm(EMPTY_FORM)} style={btn("#95a5a6")}>
               Cancelar
@@ -197,25 +313,60 @@ export default function ItemsPage() {
 
       <div style={{ display: "grid", gap: 8 }}>
         {items.map((it) => (
-          <div key={it.id} style={{ border: "1px solid var(--card-border)", borderRadius: 8, padding: 10, background: "var(--card-bg)" }}>
-            <div style={{ fontWeight: 700 }}>{it.name} — {it.price} moedas</div>
+          <div
+            key={it.id}
+            style={{
+              border: "1px solid var(--card-border)",
+              borderRadius: 8,
+              padding: 10,
+              background: "var(--card-bg)",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>
+              {it.name} — {it.price} moedas
+            </div>
             <div style={{ color: "var(--muted)", fontSize: 13 }}>{it.type}</div>
             {it.effect && (
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-                {it.effect.hunger ? `Fome ${it.effect.hunger > 0 ? "+" : ""}${it.effect.hunger} ` : ""}
-                {it.effect.energy ? `Energia ${it.effect.energy > 0 ? "+" : ""}${it.effect.energy} ` : ""}
-                {it.effect.happiness ? `Felicidade ${it.effect.happiness > 0 ? "+" : ""}${it.effect.happiness} ` : ""}
-                {it.effect.hygiene ? `Higiene ${it.effect.hygiene > 0 ? "+" : ""}${it.effect.hygiene} ` : ""}
-                {it.effect.life ? `Vida ${it.effect.life > 0 ? "+" : ""}${it.effect.life}` : ""}
+              <div
+                style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}
+              >
+                {it.effect.hunger
+                  ? `Fome ${it.effect.hunger > 0 ? "+" : ""}${it.effect.hunger} `
+                  : ""}
+                {it.effect.energy
+                  ? `Energia ${it.effect.energy > 0 ? "+" : ""}${it.effect.energy} `
+                  : ""}
+                {it.effect.happiness
+                  ? `Felicidade ${it.effect.happiness > 0 ? "+" : ""}${it.effect.happiness} `
+                  : ""}
+                {it.effect.hygiene
+                  ? `Higiene ${it.effect.hygiene > 0 ? "+" : ""}${it.effect.hygiene} `
+                  : ""}
+                {it.effect.life
+                  ? `Vida ${it.effect.life > 0 ? "+" : ""}${it.effect.life}`
+                  : ""}
               </div>
             )}
-            <div style={{ marginTop: 8, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => startEdit(it)} style={btn("#0984e3")}>Editar</button>
-              <button onClick={() => removeItem(it.id)} style={btn("#d63031")}>Eliminar</button>
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                gap: 8,
+                justifyContent: "flex-end",
+              }}
+            >
+              <button onClick={() => startEdit(it)} style={btn("#0984e3")}>
+                Editar
+              </button>
+              <button onClick={() => removeItem(it.id)} style={btn("#d63031")}>
+                Eliminar
+              </button>
             </div>
           </div>
         ))}
-        {items.length === 0 && <div style={{ color: "var(--muted)" }}>Sem itens.</div>}
+        {items.length === 0 && (
+          <div style={{ color: "var(--muted)" }}>Sem itens.</div>
+        )}
       </div>
     </main>
   );
@@ -231,7 +382,10 @@ const inputStyle: React.CSSProperties = {
 
 const fieldWrapStyle: React.CSSProperties = { display: "grid", gap: 4 };
 const fieldLabelStyle: React.CSSProperties = { fontWeight: 600, fontSize: 13 };
-const fieldHelpStyle: React.CSSProperties = { color: "var(--muted)", fontSize: 12 };
+const fieldHelpStyle: React.CSSProperties = {
+  color: "var(--muted)",
+  fontSize: 12,
+};
 
 function btn(background: string): React.CSSProperties {
   return {

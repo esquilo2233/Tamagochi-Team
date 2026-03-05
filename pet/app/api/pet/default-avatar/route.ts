@@ -21,8 +21,11 @@ export async function POST() {
     return NextResponse.json({ ok: true, url: blob.url });
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: error.message || "Erro ao fazer upload do avatar padrão" },
-      { status: 500 }
+      {
+        ok: false,
+        error: error.message || "Erro ao fazer upload do avatar padrão",
+      },
+      { status: 500 },
     );
   }
 }

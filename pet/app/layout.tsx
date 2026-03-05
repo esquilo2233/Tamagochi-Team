@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ReportBugButton from "@/components/ReportBugButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,12 +24,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" style={{ width: "100%", margin: 0, padding: 0 }}>
+    <html
+      lang="en"
+      style={{ width: "100%", margin: 0, padding: 0 }}
+      suppressHydrationWarning
+    >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ width: "100%", margin: 0, padding: 0 }}
       >
-        <script dangerouslySetInnerHTML={{ __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
           (function(){
             try {
               var stored = localStorage.getItem('theme');
@@ -50,8 +57,11 @@ export default function RootLayout({
               }
             } catch (e) { /* ignore */ }
           })();
-        ` }} />
+        `,
+          }}
+        />
         {children}
+        <ReportBugButton />
       </body>
     </html>
   );

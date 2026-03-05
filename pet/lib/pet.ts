@@ -81,19 +81,55 @@ function clampNonNegative(v: number, fallback: number) {
 }
 
 function parseDecayConfig(raw: unknown): DecayConfig {
-  const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const source = (raw && typeof raw === "object" ? raw : {}) as Record<
+    string,
+    unknown
+  >;
   return {
-    hungerDecayPerMinute: clampNonNegative(Number(source.hungerDecayPerMinute), DEFAULT_DECAY_CONFIG.hungerDecayPerMinute),
-    energyDecayPerMinute: clampNonNegative(Number(source.energyDecayPerMinute), DEFAULT_DECAY_CONFIG.energyDecayPerMinute),
-    happinessDecayPerMinute: clampNonNegative(Number(source.happinessDecayPerMinute), DEFAULT_DECAY_CONFIG.happinessDecayPerMinute),
-    hygieneDecayPerMinute: clampNonNegative(Number(source.hygieneDecayPerMinute), DEFAULT_DECAY_CONFIG.hygieneDecayPerMinute),
-    lifeDecayWhenHungerZeroPerMinute: clampNonNegative(Number(source.lifeDecayWhenHungerZeroPerMinute), DEFAULT_DECAY_CONFIG.lifeDecayWhenHungerZeroPerMinute),
-    lifeDecayWhenEnergyZeroPerMinute: clampNonNegative(Number(source.lifeDecayWhenEnergyZeroPerMinute), DEFAULT_DECAY_CONFIG.lifeDecayWhenEnergyZeroPerMinute),
-    lifeDecayWhenHygieneZeroPerMinute: clampNonNegative(Number(source.lifeDecayWhenHygieneZeroPerMinute), DEFAULT_DECAY_CONFIG.lifeDecayWhenHygieneZeroPerMinute),
-    lowAttentionEnabled: source.lowAttentionEnabled === undefined ? DEFAULT_DECAY_CONFIG.lowAttentionEnabled : Boolean(source.lowAttentionEnabled),
-    lowAttentionStartHour: clampHour(Number(source.lowAttentionStartHour), DEFAULT_DECAY_CONFIG.lowAttentionStartHour),
-    lowAttentionEndHour: clampHour(Number(source.lowAttentionEndHour), DEFAULT_DECAY_CONFIG.lowAttentionEndHour),
-    lowAttentionDecayMultiplier: clampNonNegative(Number(source.lowAttentionDecayMultiplier), DEFAULT_DECAY_CONFIG.lowAttentionDecayMultiplier),
+    hungerDecayPerMinute: clampNonNegative(
+      Number(source.hungerDecayPerMinute),
+      DEFAULT_DECAY_CONFIG.hungerDecayPerMinute,
+    ),
+    energyDecayPerMinute: clampNonNegative(
+      Number(source.energyDecayPerMinute),
+      DEFAULT_DECAY_CONFIG.energyDecayPerMinute,
+    ),
+    happinessDecayPerMinute: clampNonNegative(
+      Number(source.happinessDecayPerMinute),
+      DEFAULT_DECAY_CONFIG.happinessDecayPerMinute,
+    ),
+    hygieneDecayPerMinute: clampNonNegative(
+      Number(source.hygieneDecayPerMinute),
+      DEFAULT_DECAY_CONFIG.hygieneDecayPerMinute,
+    ),
+    lifeDecayWhenHungerZeroPerMinute: clampNonNegative(
+      Number(source.lifeDecayWhenHungerZeroPerMinute),
+      DEFAULT_DECAY_CONFIG.lifeDecayWhenHungerZeroPerMinute,
+    ),
+    lifeDecayWhenEnergyZeroPerMinute: clampNonNegative(
+      Number(source.lifeDecayWhenEnergyZeroPerMinute),
+      DEFAULT_DECAY_CONFIG.lifeDecayWhenEnergyZeroPerMinute,
+    ),
+    lifeDecayWhenHygieneZeroPerMinute: clampNonNegative(
+      Number(source.lifeDecayWhenHygieneZeroPerMinute),
+      DEFAULT_DECAY_CONFIG.lifeDecayWhenHygieneZeroPerMinute,
+    ),
+    lowAttentionEnabled:
+      source.lowAttentionEnabled === undefined
+        ? DEFAULT_DECAY_CONFIG.lowAttentionEnabled
+        : Boolean(source.lowAttentionEnabled),
+    lowAttentionStartHour: clampHour(
+      Number(source.lowAttentionStartHour),
+      DEFAULT_DECAY_CONFIG.lowAttentionStartHour,
+    ),
+    lowAttentionEndHour: clampHour(
+      Number(source.lowAttentionEndHour),
+      DEFAULT_DECAY_CONFIG.lowAttentionEndHour,
+    ),
+    lowAttentionDecayMultiplier: clampNonNegative(
+      Number(source.lowAttentionDecayMultiplier),
+      DEFAULT_DECAY_CONFIG.lowAttentionDecayMultiplier,
+    ),
   };
 }
 
@@ -103,19 +139,55 @@ function clampMinOne(v: number, fallback: number) {
 }
 
 function parseRewardsConfig(raw: unknown): RewardsConfig {
-  const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const source = (raw && typeof raw === "object" ? raw : {}) as Record<
+    string,
+    unknown
+  >;
   return {
-    clickrushWinCoins: clampNonNegative(Number(source.clickrushWinCoins), DEFAULT_REWARDS_CONFIG.clickrushWinCoins),
-    clickrushLoseCoins: clampNonNegative(Number(source.clickrushLoseCoins), DEFAULT_REWARDS_CONFIG.clickrushLoseCoins),
-    clickrushWinScoreThreshold: clampNonNegative(Number(source.clickrushWinScoreThreshold), DEFAULT_REWARDS_CONFIG.clickrushWinScoreThreshold),
-    tictactoeWinCoins: clampNonNegative(Number(source.tictactoeWinCoins), DEFAULT_REWARDS_CONFIG.tictactoeWinCoins),
-    tictactoeLoseCoins: clampNonNegative(Number(source.tictactoeLoseCoins), DEFAULT_REWARDS_CONFIG.tictactoeLoseCoins),
-    chessWinCoins: clampNonNegative(Number(source.chessWinCoins), DEFAULT_REWARDS_CONFIG.chessWinCoins),
-    chessLoseCoins: clampNonNegative(Number(source.chessLoseCoins), DEFAULT_REWARDS_CONFIG.chessLoseCoins),
-    connect4WinCoins: clampNonNegative(Number(source.connect4WinCoins), DEFAULT_REWARDS_CONFIG.connect4WinCoins),
-    connect4LoseCoins: clampNonNegative(Number(source.connect4LoseCoins), DEFAULT_REWARDS_CONFIG.connect4LoseCoins),
-    companionTickMinutes: clampMinOne(Number(source.companionTickMinutes), DEFAULT_REWARDS_CONFIG.companionTickMinutes),
-    companionCoinsPerTick: clampNonNegative(Number(source.companionCoinsPerTick), DEFAULT_REWARDS_CONFIG.companionCoinsPerTick),
+    clickrushWinCoins: clampNonNegative(
+      Number(source.clickrushWinCoins),
+      DEFAULT_REWARDS_CONFIG.clickrushWinCoins,
+    ),
+    clickrushLoseCoins: clampNonNegative(
+      Number(source.clickrushLoseCoins),
+      DEFAULT_REWARDS_CONFIG.clickrushLoseCoins,
+    ),
+    clickrushWinScoreThreshold: clampNonNegative(
+      Number(source.clickrushWinScoreThreshold),
+      DEFAULT_REWARDS_CONFIG.clickrushWinScoreThreshold,
+    ),
+    tictactoeWinCoins: clampNonNegative(
+      Number(source.tictactoeWinCoins),
+      DEFAULT_REWARDS_CONFIG.tictactoeWinCoins,
+    ),
+    tictactoeLoseCoins: clampNonNegative(
+      Number(source.tictactoeLoseCoins),
+      DEFAULT_REWARDS_CONFIG.tictactoeLoseCoins,
+    ),
+    chessWinCoins: clampNonNegative(
+      Number(source.chessWinCoins),
+      DEFAULT_REWARDS_CONFIG.chessWinCoins,
+    ),
+    chessLoseCoins: clampNonNegative(
+      Number(source.chessLoseCoins),
+      DEFAULT_REWARDS_CONFIG.chessLoseCoins,
+    ),
+    connect4WinCoins: clampNonNegative(
+      Number(source.connect4WinCoins),
+      DEFAULT_REWARDS_CONFIG.connect4WinCoins,
+    ),
+    connect4LoseCoins: clampNonNegative(
+      Number(source.connect4LoseCoins),
+      DEFAULT_REWARDS_CONFIG.connect4LoseCoins,
+    ),
+    companionTickMinutes: clampMinOne(
+      Number(source.companionTickMinutes),
+      DEFAULT_REWARDS_CONFIG.companionTickMinutes,
+    ),
+    companionCoinsPerTick: clampNonNegative(
+      Number(source.companionCoinsPerTick),
+      DEFAULT_REWARDS_CONFIG.companionCoinsPerTick,
+    ),
   };
 }
 
@@ -228,19 +300,32 @@ export async function updatePetAvatar(avatarPath: string) {
 /**
  * Award coins to a person (coins are stored per Person now).
  */
-export async function awardCoinsToPerson(personId: number, amount: number, opts?: { game?: string; playerName?: string; score?: number }) {
+export async function awardCoinsToPerson(
+  personId: number,
+  amount: number,
+  opts?: { game?: string; playerName?: string; score?: number },
+) {
   if (amount <= 0) return null;
   const person = await prisma.person.findUnique({ where: { id: personId } });
   if (!person) return null;
 
   const newCoins = (person.coins ?? 0) + amount;
 
-  const updatedPerson = await prisma.person.update({ where: { id: personId }, data: { coins: newCoins } });
+  const updatedPerson = await prisma.person.update({
+    where: { id: personId },
+    data: { coins: newCoins },
+  });
 
   // record score when provided (associate player name if given)
   if (opts?.game) {
     try {
-      await prisma.gameScore.create({ data: { game: opts.game, player: opts.playerName ?? person.name ?? 'anonymous', score: opts.score ?? 0 } });
+      await prisma.gameScore.create({
+        data: {
+          game: opts.game,
+          player: opts.playerName ?? person.name ?? "anonymous",
+          score: opts.score ?? 0,
+        },
+      });
     } catch (e) {
       // ignore logging errors
     }
@@ -251,47 +336,93 @@ export async function awardCoinsToPerson(personId: number, amount: number, opts?
 
 /**
  * Purchase an item with a person's coins and apply its effect to the pet.
+ * Otimizado com transação única para maior performance.
  */
-export async function purchaseItem(personId: number, itemId: number, petId: number) {
-  const person = await prisma.person.findUnique({ where: { id: personId } });
-  const item = await prisma.item.findUnique({ where: { id: itemId } });
-  const pet = await prisma.pet.findUnique({ where: { id: petId } });
-  if (!person) throw new Error('person not found');
-  if (!item) throw new Error('item not found');
-  if (!pet) throw new Error('pet not found');
+export async function purchaseItem(
+  personId: number,
+  itemId: number,
+  petId: number,
+) {
+  // Usar transação para garantir atomicidade e performance
+  const result = await prisma.$transaction(async (tx) => {
+    // Buscar tudo numa única transação
+    const [person, item, pet] = await Promise.all([
+      tx.person.findUnique({ where: { id: personId } }),
+      tx.item.findUnique({ where: { id: itemId } }),
+      tx.pet.findUnique({ where: { id: petId } }),
+    ]);
 
-  if ((person.coins ?? 0) < item.price) {
-    return { ok: false, error: 'insufficient_coins' };
-  }
+    if (!person) throw new Error("person not found");
+    if (!item) throw new Error("item not found");
+    if (!pet) throw new Error("pet not found");
 
-  // deduct coins and create purchase
-  const updatedPerson = await prisma.person.update({ where: { id: personId }, data: { coins: (person.coins ?? 0) - item.price } });
+    const personCoins = person.coins ?? 0;
+    const itemPrice = item.price ?? 0;
 
-  await prisma.purchase.create({ data: { petId, itemId, quantity: 1 } });
+    if (personCoins < itemPrice) {
+      throw new Error("insufficient_coins");
+    }
 
-  return { ok: true, person: updatedPerson };
+    // Atualizar pessoa e criar compra na mesma transação
+    const [updatedPerson] = await Promise.all([
+      tx.person.update({
+        where: { id: personId },
+        data: { coins: personCoins - itemPrice },
+      }),
+      tx.purchase.create({ data: { petId, itemId, quantity: 1 } }),
+    ]);
+
+    return { ok: true, person: updatedPerson, coinsSpent: itemPrice };
+  });
+
+  return result;
 }
 
 export async function listFoodInventory(petId: number) {
-  const purchases = await prisma.purchase.findMany({ where: { petId }, orderBy: { boughtAt: "asc" } });
+  // Buscar purchases
+  const purchases = await prisma.purchase.findMany({
+    where: { petId },
+    orderBy: { boughtAt: "asc" },
+  });
+
   if (purchases.length === 0) return [];
 
-  const itemIds = Array.from(new Set(purchases.map((p) => p.itemId)));
-  const items = await prisma.item.findMany({ where: { id: { in: itemIds } } });
+  // Buscar items separadamente
+  const itemIds = [...new Set(purchases.map((p) => p.itemId))];
+  const items = await prisma.item.findMany({
+    where: { id: { in: itemIds } },
+  });
 
-  const countByItemId = purchases.reduce<Record<number, number>>((acc, p) => {
-    acc[p.itemId] = (acc[p.itemId] ?? 0) + (p.quantity ?? 1);
-    return acc;
-  }, {});
+  // Criar mapa de items
+  const itemMap = new Map(items.map((item) => [item.id, item]));
 
-  return items.map((item) => ({
-    id: item.id,
-    name: item.name,
-    type: item.type,
-    effect: item.effect,
-    price: item.price,
-    quantity: countByItemId[item.id] ?? 0,
-  })).filter((item) => item.quantity > 0);
+  // Agrupar por itemId e somar quantidades
+  const inventoryMap = purchases.reduce(
+    (acc, p) => {
+      const itemId = p.itemId;
+      if (!acc[itemId]) {
+        acc[itemId] = {
+          item: itemMap.get(itemId)!,
+          quantity: 0,
+        };
+      }
+      acc[itemId].quantity += p.quantity ?? 1;
+      return acc;
+    },
+    {} as Record<number, { item: any; quantity: number }>,
+  );
+
+  // Retornar apenas itens com quantidade > 0
+  return Object.values(inventoryMap)
+    .filter(({ quantity }) => quantity > 0)
+    .map(({ item, quantity }) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      effect: item.effect,
+      price: item.price,
+      quantity,
+    }));
 }
 
 export async function consumeFoodItem(petId: number, itemId: number) {
@@ -311,7 +442,10 @@ export async function consumeFoodItem(petId: number, itemId: number) {
 
   await prisma.purchase.delete({ where: { id: purchase.id } });
 
-  const updatedPet = await applyItemEffect(petId, (item.effect as Record<string, number>) ?? {});
+  const updatedPet = await applyItemEffect(
+    petId,
+    (item.effect as Record<string, number>) ?? {},
+  );
   return { ok: true, pet: updatedPet };
 }
 
@@ -330,18 +464,25 @@ export async function updatePetState() {
       hour: "2-digit",
       hour12: false,
       timeZone: "Europe/Lisbon",
-    }).format(now)
+    }).format(now),
   );
   const isLowAttentionWindow = decayConfig.lowAttentionEnabled
-    ? isHourInsideWindow(lisboaHour, decayConfig.lowAttentionStartHour, decayConfig.lowAttentionEndHour)
+    ? isHourInsideWindow(
+        lisboaHour,
+        decayConfig.lowAttentionStartHour,
+        decayConfig.lowAttentionEndHour,
+      )
     : false;
-  const lowAttentionDecayMultiplier = isLowAttentionWindow ? decayConfig.lowAttentionDecayMultiplier : 1;
+  const lowAttentionDecayMultiplier = isLowAttentionWindow
+    ? decayConfig.lowAttentionDecayMultiplier
+    : 1;
   const last = pet.lastUpdate ?? new Date();
   const minutesPassed = (now.getTime() - last.getTime()) / (1000 * 60);
 
   if (minutesPassed < 1) return pet;
 
-  const sleepStartedAt = (pet as { sleepStartedAt?: Date | null }).sleepStartedAt;
+  const sleepStartedAt = (pet as { sleepStartedAt?: Date | null })
+    .sleepStartedAt;
 
   if (sleepStartedAt) {
     // Pet a dormir: recuperação acelerada
@@ -376,10 +517,22 @@ export async function updatePetState() {
   }
 
   // Pet acordado: decaimento normal
-  const hungerDecay = minutesPassed * decayConfig.hungerDecayPerMinute * lowAttentionDecayMultiplier;
-  const energyDecay = minutesPassed * decayConfig.energyDecayPerMinute * lowAttentionDecayMultiplier;
-  const happinessDecay = minutesPassed * decayConfig.happinessDecayPerMinute * lowAttentionDecayMultiplier;
-  const hygieneDecay = minutesPassed * decayConfig.hygieneDecayPerMinute * lowAttentionDecayMultiplier;
+  const hungerDecay =
+    minutesPassed *
+    decayConfig.hungerDecayPerMinute *
+    lowAttentionDecayMultiplier;
+  const energyDecay =
+    minutesPassed *
+    decayConfig.energyDecayPerMinute *
+    lowAttentionDecayMultiplier;
+  const happinessDecay =
+    minutesPassed *
+    decayConfig.happinessDecayPerMinute *
+    lowAttentionDecayMultiplier;
+  const hygieneDecay =
+    minutesPassed *
+    decayConfig.hygieneDecayPerMinute *
+    lowAttentionDecayMultiplier;
 
   const hunger = Math.max((pet.hunger ?? 100) - hungerDecay, 0);
   const energy = Math.max((pet.energy ?? 100) - energyDecay, 0);
@@ -387,9 +540,30 @@ export async function updatePetState() {
   const hygiene = Math.max((pet.hygiene ?? 100) - hygieneDecay, 0);
 
   let life = pet.life ?? 100;
-  if (hunger === 0) life = Math.max(life - minutesPassed * decayConfig.lifeDecayWhenHungerZeroPerMinute * lowAttentionDecayMultiplier, 0);
-  if (energy === 0) life = Math.max(life - minutesPassed * decayConfig.lifeDecayWhenEnergyZeroPerMinute * lowAttentionDecayMultiplier, 0);
-  if (hygiene === 0) life = Math.max(life - minutesPassed * decayConfig.lifeDecayWhenHygieneZeroPerMinute * lowAttentionDecayMultiplier, 0);
+  if (hunger === 0)
+    life = Math.max(
+      life -
+        minutesPassed *
+          decayConfig.lifeDecayWhenHungerZeroPerMinute *
+          lowAttentionDecayMultiplier,
+      0,
+    );
+  if (energy === 0)
+    life = Math.max(
+      life -
+        minutesPassed *
+          decayConfig.lifeDecayWhenEnergyZeroPerMinute *
+          lowAttentionDecayMultiplier,
+      0,
+    );
+  if (hygiene === 0)
+    life = Math.max(
+      life -
+        minutesPassed *
+          decayConfig.lifeDecayWhenHygieneZeroPerMinute *
+          lowAttentionDecayMultiplier,
+      0,
+    );
 
   return prisma.pet.update({
     where: { id: pet.id },
@@ -404,17 +578,25 @@ export async function updatePetState() {
   });
 }
 
-export async function applyItemEffect(petId: number, effect: Record<string, number>) {
+export async function applyItemEffect(
+  petId: number,
+  effect: Record<string, number>,
+) {
   const pet = await prisma.pet.findUnique({ where: { id: petId } });
   if (!pet) return null;
 
   const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
   const data: PetLike = {};
-  if (typeof effect.hunger === "number") data.hunger = clamp((pet.hunger ?? 0) + effect.hunger);
-  if (typeof effect.energy === "number") data.energy = clamp((pet.energy ?? 0) + effect.energy);
-  if (typeof effect.happiness === "number") data.happiness = clamp((pet.happiness ?? 0) + effect.happiness);
-  if (typeof effect.hygiene === "number") data.hygiene = clamp((pet.hygiene ?? 0) + effect.hygiene);
-  if (typeof effect.life === "number") data.life = clamp((pet.life ?? 0) + effect.life);
+  if (typeof effect.hunger === "number")
+    data.hunger = clamp((pet.hunger ?? 0) + effect.hunger);
+  if (typeof effect.energy === "number")
+    data.energy = clamp((pet.energy ?? 0) + effect.energy);
+  if (typeof effect.happiness === "number")
+    data.happiness = clamp((pet.happiness ?? 0) + effect.happiness);
+  if (typeof effect.hygiene === "number")
+    data.hygiene = clamp((pet.hygiene ?? 0) + effect.hygiene);
+  if (typeof effect.life === "number")
+    data.life = clamp((pet.life ?? 0) + effect.life);
 
   return prisma.pet.update({
     where: { id: petId },
@@ -429,7 +611,10 @@ export async function applyItemEffect(petId: number, effect: Record<string, numb
   });
 }
 
-export async function performAction(petId: number, action: "feed" | "clean" | "play" | "sleep") {
+export async function performAction(
+  petId: number,
+  action: "feed" | "clean" | "play" | "sleep",
+) {
   const pet = await prisma.pet.findUnique({ where: { id: petId } });
   if (!pet) return null;
 
@@ -476,7 +661,10 @@ export async function createPerson(name: string, role?: string) {
   return prisma.person.create({ data: { name, role, code: code! } });
 }
 
-export async function updatePerson(id: number, data: { name?: string; role?: string }) {
+export async function updatePerson(
+  id: number,
+  data: { name?: string; role?: string },
+) {
   return prisma.person.update({ where: { id }, data });
 }
 
@@ -531,7 +719,9 @@ export async function stopCompanionSession(sessionId: number) {
   // Calcular tempo total da sessão
   const now = new Date();
   const started = session.startedAt;
-  const totalSessionSeconds = Math.floor((now.getTime() - started.getTime()) / 1000);
+  const totalSessionSeconds = Math.floor(
+    (now.getTime() - started.getTime()) / 1000,
+  );
 
   // Atualizar tempo total da pessoa
   if (totalSessionSeconds > 0) {
@@ -564,7 +754,9 @@ export async function processCompanionSessions() {
 
   for (const s of sessions) {
     const last = s.lastTickAt ?? s.startedAt ?? new Date();
-    const minutesPassed = Math.floor((now.getTime() - last.getTime()) / (1000 * 60));
+    const minutesPassed = Math.floor(
+      (now.getTime() - last.getTime()) / (1000 * 60),
+    );
     const tickInterval = rewardsConfig.companionTickMinutes;
     const ticks = Math.floor(minutesPassed / tickInterval);
     if (ticks <= 0) continue;
@@ -610,7 +802,9 @@ export async function processCompanionSessions() {
       await awardCoinsToPerson(s.personId, totalCoins);
 
       // Atualizar sessão
-      const advanced = new Date(last.getTime() + ticks * tickInterval * 60 * 1000);
+      const advanced = new Date(
+        last.getTime() + ticks * tickInterval * 60 * 1000,
+      );
       await prisma.companionSession.update({
         where: { id: s.id },
         data: {
@@ -637,7 +831,10 @@ export async function startWorkSession(petId: number, personId: number) {
 }
 
 export async function stopWorkSession(sessionId: number) {
-  return prisma.workSession.update({ where: { id: sessionId }, data: { active: false } });
+  return prisma.workSession.update({
+    where: { id: sessionId },
+    data: { active: false },
+  });
 }
 
 /**
@@ -646,11 +843,15 @@ export async function stopWorkSession(sessionId: number) {
  */
 export async function processWorkSessions() {
   const now = new Date();
-  const sessions = await prisma.workSession.findMany({ where: { active: true } });
+  const sessions = await prisma.workSession.findMany({
+    where: { active: true },
+  });
 
   for (const s of sessions) {
     const last = s.lastTickAt ?? s.startedAt ?? new Date();
-    const minutesPassed = Math.floor((now.getTime() - last.getTime()) / (1000 * 60));
+    const minutesPassed = Math.floor(
+      (now.getTime() - last.getTime()) / (1000 * 60),
+    );
     const tickInterval = 15; // minutos por tick
     const ticks = Math.floor(minutesPassed / tickInterval);
     if (ticks <= 0) continue;
@@ -663,17 +864,28 @@ export async function processWorkSessions() {
       const pet = await prisma.pet.findUnique({ where: { id: s.petId } });
       if (!pet) {
         // stop session if pet missing
-        await prisma.workSession.update({ where: { id: s.id }, data: { active: false } });
+        await prisma.workSession.update({
+          where: { id: s.id },
+          data: { active: false },
+        });
         continue;
       }
 
       const newHappiness = Math.min(100, (pet.happiness ?? 0) + totalGain);
 
-      await prisma.pet.update({ where: { id: pet.id }, data: { happiness: newHappiness, lastUpdate: now } });
+      await prisma.pet.update({
+        where: { id: pet.id },
+        data: { happiness: newHappiness, lastUpdate: now },
+      });
 
       // advance lastTickAt by ticks*interval minutes (keep remainder)
-      const advanced = new Date(last.getTime() + ticks * tickInterval * 60 * 1000);
-      await prisma.workSession.update({ where: { id: s.id }, data: { lastTickAt: advanced } });
+      const advanced = new Date(
+        last.getTime() + ticks * tickInterval * 60 * 1000,
+      );
+      await prisma.workSession.update({
+        where: { id: s.id },
+        data: { lastTickAt: advanced },
+      });
     } catch (err) {
       // ignore single session errors but log, in real app use logger
       // console.error(err);

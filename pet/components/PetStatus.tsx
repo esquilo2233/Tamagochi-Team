@@ -43,6 +43,8 @@ export default function PetStatus() {
   const [showMinigames, setShowMinigames] = useState(false);
   const [showFoodShop, setShowFoodShop] = useState(false);
   const [foodItems, setFoodItems] = useState<Array<any>>([]);
+  const [foodFilter, setFoodFilter] = useState<string>("all");
+  const [foodSearch, setFoodSearch] = useState<string>("");
 
   const [petId, setPetId] = useState<number | null>(null);
   const [petAvatarUrl, setPetAvatarUrl] = useState<string | null>(null);
@@ -944,7 +946,7 @@ export default function PetStatus() {
                 marginBottom: 20,
               }}
             >
-              <h3 style={{ margin: 0 }}>Usar itens no Samurai</h3>
+              <h3 style={{ margin: 0 }}>🎒 Inventário</h3>
               <button
                 onClick={() => setShowFoodShop(false)}
                 style={{
@@ -958,179 +960,299 @@ export default function PetStatus() {
                 ×
               </button>
             </div>
-            {foodItems.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {foodItems.map((item: any) => (
-                  <div
-                    key={item.id}
+
+            {/* Filtros do Inventário */}
+            <div style={{ marginBottom: 16 }}>
+              {/* Pesquisa */}
+              <input
+                type="text"
+                placeholder="🔍 Pesquisar itens..."
+                value={foodSearch}
+                onChange={(e) => setFoodSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "2px solid var(--card-border)",
+                  background: "var(--card-bg)",
+                  color: "var(--foreground)",
+                  fontSize: 14,
+                  marginBottom: 12,
+                  outline: "none",
+                }}
+              />
+
+              {/* Filtros por tipo */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[
+                  { value: "all", label: "Todos", icon: "🎒" },
+                  { value: "comida", label: "Comida", icon: "🍎" },
+                  { value: "bebida", label: "Bebida", icon: "🥤" },
+                  { value: "remedio", label: "Remédio", icon: "💊" },
+                  { value: "higiene", label: "Higiene", icon: "🧼" },
+                  { value: "energia", label: "Energia", icon: "⚡" },
+                  { value: "felicidade", label: "Felicidade", icon: "😊" },
+                  { value: "especial", label: "Especial", icon: "✨" },
+                ].map((filter) => (
+                  <button
+                    key={filter.value}
+                    onClick={() => setFoodFilter(filter.value)}
                     style={{
-                      padding: 12,
-                      borderRadius: 8,
-                      background: "var(--background)",
-                      border: "1px solid var(--card-border)",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      padding: "6px 12px",
+                      borderRadius: 16,
+                      border:
+                        foodFilter === filter.value
+                          ? "2px solid var(--accent)"
+                          : "2px solid var(--card-border)",
+                      background:
+                        foodFilter === filter.value
+                          ? "var(--accent)"
+                          : "var(--card-bg)",
+                      color:
+                        foodFilter === filter.value
+                          ? "#fff"
+                          : "var(--foreground)",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: foodFilter === filter.value ? 600 : 400,
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{item.name}</div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "var(--muted)",
-                          marginTop: 2,
-                        }}
-                      >
-                        Tipo: <strong>{String(item.type ?? "item")}</strong>
-                      </div>
-                      {item.effect && typeof item.effect === "object" && (
+                    {filter.icon} {filter.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista de itens filtrados */}
+            {(() => {
+              const filteredFoodItems = foodItems.filter((item: any) => {
+                const matchesType =
+                  foodFilter === "all" || item.type === foodFilter;
+                const matchesSearch =
+                  foodSearch === "" ||
+                  item.name.toLowerCase().includes(foodSearch.toLowerCase());
+                return matchesType && matchesSearch && (item.quantity ?? 0) > 0;
+              });
+
+              if (filteredFoodItems.length === 0) {
+                return (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: 40,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {foodSearch || foodFilter !== "all"
+                      ? "🔍 Nenhum item encontrado com estes filtros."
+                      : "📦 Inventário vazio."}
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                >
+                  {filteredFoodItems.map((item: any) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
+                        background: "var(--background)",
+                        border: "1px solid var(--card-border)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{item.name}</div>
                         <div
                           style={{
-                            fontSize: 11,
-                            marginTop: 6,
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 4,
+                            fontSize: 12,
+                            color: "var(--muted)",
+                            marginTop: 2,
                           }}
                         >
-                          {item.effect.hunger && (
-                            <span
-                              style={{
-                                background: "rgba(254, 243, 199, 0.3)",
-                                color: "var(--foreground)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                border: "1px solid rgba(254, 243, 199, 0.5)",
-                              }}
-                            >
-                              +{item.effect.hunger} Fome
-                            </span>
-                          )}
-                          {item.effect.energy && (
-                            <span
-                              style={{
-                                background: "rgba(219, 234, 254, 0.3)",
-                                color: "var(--foreground)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                border: "1px solid rgba(219, 234, 254, 0.5)",
-                              }}
-                            >
-                              +{item.effect.energy} Energia
-                            </span>
-                          )}
-                          {item.effect.happiness && (
-                            <span
-                              style={{
-                                background: "rgba(252, 231, 243, 0.3)",
-                                color: "var(--foreground)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                border: "1px solid rgba(252, 231, 243, 0.5)",
-                              }}
-                            >
-                              +{item.effect.happiness} Felicidade
-                            </span>
-                          )}
-                          {item.effect.hygiene && (
-                            <span
-                              style={{
-                                background: "rgba(209, 250, 229, 0.3)",
-                                color: "var(--foreground)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                border: "1px solid rgba(209, 250, 229, 0.5)",
-                              }}
-                            >
-                              +{item.effect.hygiene} Higiene
-                            </span>
-                          )}
-                          {item.effect.life && (
-                            <span
-                              style={{
-                                background: "rgba(254, 226, 226, 0.3)",
-                                color: "var(--foreground)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                border: "1px solid rgba(254, 226, 226, 0.5)",
-                              }}
-                            >
-                              +{item.effect.life} Vida
-                            </span>
-                          )}
+                          Tipo: <strong>{String(item.type ?? "item")}</strong>
                         </div>
-                      )}
-                    </div>
-                    <div
-                      style={{ display: "flex", gap: 8, alignItems: "center" }}
-                    >
-                      <span style={{ fontWeight: 600 }}>
-                        x{item.quantity ?? 0}
-                      </span>
-                      <button
-                        onClick={async () => {
-                          // Optimistic UI update
-                          setFoodItems((prev) =>
-                            prev
-                              .map((it) =>
-                                it.id === item.id
-                                  ? { ...it, quantity: (it.quantity ?? 0) - 1 }
-                                  : it,
-                              )
-                              .filter((it) => (it.quantity ?? 0) > 0),
-                          );
+                        {item.effect && typeof item.effect === "object" && (
+                          <div
+                            style={{
+                              fontSize: 11,
+                              marginTop: 6,
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 4,
+                            }}
+                          >
+                            {item.effect.hunger && (
+                              <span
+                                style={{
+                                  background: "rgba(254, 243, 199, 0.3)",
+                                  color: "var(--foreground)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  border: "1px solid rgba(254, 243, 199, 0.5)",
+                                }}
+                              >
+                                +{item.effect.hunger} Fome
+                              </span>
+                            )}
+                            {item.effect.energy && (
+                              <span
+                                style={{
+                                  background: "rgba(219, 234, 254, 0.3)",
+                                  color: "var(--foreground)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  border: "1px solid rgba(219, 234, 254, 0.5)",
+                                }}
+                              >
+                                +{item.effect.energy} Energia
+                              </span>
+                            )}
+                            {item.effect.happiness && (
+                              <span
+                                style={{
+                                  background: "rgba(252, 231, 243, 0.3)",
+                                  color: "var(--foreground)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  border: "1px solid rgba(252, 231, 243, 0.5)",
+                                }}
+                              >
+                                +{item.effect.happiness} Felicidade
+                              </span>
+                            )}
+                            {item.effect.hygiene && (
+                              <span
+                                style={{
+                                  background: "rgba(209, 250, 229, 0.3)",
+                                  color: "var(--foreground)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  border: "1px solid rgba(209, 250, 229, 0.5)",
+                                }}
+                              >
+                                +{item.effect.hygiene} Higiene
+                              </span>
+                            )}
+                            {item.effect.life && (
+                              <span
+                                style={{
+                                  background: "rgba(254, 226, 226, 0.3)",
+                                  color: "var(--foreground)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  border: "1px solid rgba(254, 226, 226, 0.5)",
+                                }}
+                              >
+                                +{item.effect.life} Vida
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>
+                          x{item.quantity ?? 0}
+                        </span>
+                        <button
+                          onClick={async () => {
+                            // Optimistic UI update
+                            setFoodItems((prev) =>
+                              prev
+                                .map((it) =>
+                                  it.id === item.id
+                                    ? {
+                                        ...it,
+                                        quantity: (it.quantity ?? 0) - 1,
+                                      }
+                                    : it,
+                                )
+                                .filter((it) => (it.quantity ?? 0) > 0),
+                            );
 
-                          // Aplicar efeito imediatamente
-                          if (item.effect) {
-                            setStats((s) => ({
-                              ...s,
-                              hunger: clamp(
-                                (s.hunger ?? 0) + (item.effect?.hunger ?? 0),
-                              ),
-                              energy: clamp(
-                                (s.energy ?? 0) + (item.effect?.energy ?? 0),
-                              ),
-                              happiness: clamp(
-                                (s.happiness ?? 0) +
-                                  (item.effect?.happiness ?? 0),
-                              ),
-                              hygiene: clamp(
-                                (s.hygiene ?? 0) + (item.effect?.hygiene ?? 0),
-                              ),
-                              life: clamp(
-                                (s.life ?? 0) + (item.effect?.life ?? 0),
-                              ),
-                            }));
-                          }
+                            // Aplicar efeito imediatamente
+                            if (item.effect) {
+                              setStats((s) => ({
+                                ...s,
+                                hunger: clamp(
+                                  (s.hunger ?? 0) + (item.effect?.hunger ?? 0),
+                                ),
+                                energy: clamp(
+                                  (s.energy ?? 0) + (item.effect?.energy ?? 0),
+                                ),
+                                happiness: clamp(
+                                  (s.happiness ?? 0) +
+                                    (item.effect?.happiness ?? 0),
+                                ),
+                                hygiene: clamp(
+                                  (s.hygiene ?? 0) +
+                                    (item.effect?.hygiene ?? 0),
+                                ),
+                                life: clamp(
+                                  (s.life ?? 0) + (item.effect?.life ?? 0),
+                                ),
+                              }));
+                            }
 
-                          setMessage(`🔄 A usar ${item.name}...`);
+                            setMessage(`🔄 A usar ${item.name}...`);
 
-                          try {
-                            const res = await fetch("/api/pet", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ consumeItemId: item.id }),
-                            });
-                            const j = await res.json();
-
-                            if (res.ok && j?.id) {
-                              setMessage(`✅ ${item.name} usado!`);
-                              // Atualizar stats do servidor
-                              setStats({
-                                hunger: j.hunger ?? stats.hunger,
-                                energy: j.energy ?? stats.energy,
-                                happiness: j.happiness ?? stats.happiness,
-                                hygiene: j.hygiene ?? stats.hygiene,
-                                life: j.life ?? stats.life,
-                                coins: j.coins ?? stats.coins,
+                            try {
+                              const res = await fetch("/api/pet", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  consumeItemId: item.id,
+                                }),
                               });
-                              // Recarregar apenas inventory
-                              const inv = await fetch(
-                                "/api/pet/inventory",
-                              ).then((r) => r.json());
-                              setFoodItems(Array.isArray(inv) ? inv : []);
-                            } else {
+                              const j = await res.json();
+
+                              if (res.ok && j?.id) {
+                                setMessage(`✅ ${item.name} usado!`);
+                                // Atualizar stats do servidor
+                                setStats({
+                                  hunger: j.hunger ?? stats.hunger,
+                                  energy: j.energy ?? stats.energy,
+                                  happiness: j.happiness ?? stats.happiness,
+                                  hygiene: j.hygiene ?? stats.hygiene,
+                                  life: j.life ?? stats.life,
+                                  coins: j.coins ?? stats.coins,
+                                });
+                                // Recarregar apenas inventory
+                                const inv = await fetch(
+                                  "/api/pet/inventory",
+                                ).then((r) => r.json());
+                                setFoodItems(Array.isArray(inv) ? inv : []);
+                              } else {
+                                // Revert optimistic update on error
+                                setFoodItems((prev) =>
+                                  prev.map((it) =>
+                                    it.id === item.id
+                                      ? {
+                                          ...it,
+                                          quantity: (it.quantity ?? 0) + 1,
+                                        }
+                                      : it,
+                                  ),
+                                );
+                                setMessage(
+                                  "❌ " + (j?.error || "item indisponível"),
+                                );
+                              }
+                              setTimeout(() => setMessage(null), 2000);
+                            } catch (e) {
                               // Revert optimistic update on error
                               setFoodItems((prev) =>
                                 prev.map((it) =>
@@ -1142,56 +1264,32 @@ export default function PetStatus() {
                                     : it,
                                 ),
                               );
-                              setMessage(
-                                "❌ " + (j?.error || "item indisponível"),
-                              );
+                              setMessage("❌ Erro de rede");
+                              setTimeout(() => setMessage(null), 2500);
                             }
-                            setTimeout(() => setMessage(null), 2000);
-                          } catch (e) {
-                            // Revert optimistic update on error
-                            setFoodItems((prev) =>
-                              prev.map((it) =>
-                                it.id === item.id
-                                  ? { ...it, quantity: (it.quantity ?? 0) + 1 }
-                                  : it,
-                              ),
-                            );
-                            setMessage("❌ Erro de rede");
-                            setTimeout(() => setMessage(null), 2500);
-                          }
-                        }}
-                        disabled={(item.quantity ?? 0) <= 0}
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: 6,
-                          background:
-                            (item.quantity ?? 0) > 0 ? "#4CAF50" : "#ccc",
-                          color: "white",
-                          border: "none",
-                          cursor:
-                            (item.quantity ?? 0) > 0
-                              ? "pointer"
-                              : "not-allowed",
-                        }}
-                      >
-                        Usar no Samurai
-                      </button>
+                          }}
+                          disabled={(item.quantity ?? 0) <= 0}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            background:
+                              (item.quantity ?? 0) > 0 ? "#4CAF50" : "#ccc",
+                            color: "white",
+                            border: "none",
+                            cursor:
+                              (item.quantity ?? 0) > 0
+                                ? "pointer"
+                                : "not-allowed",
+                          }}
+                        >
+                          Usar no Samurai
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div
-                style={{
-                  color: "var(--muted)",
-                  textAlign: "center",
-                  padding: 20,
-                }}
-              >
-                Ainda não tens itens no inventário. Compra na loja e usa aqui
-                (comida, remédio, higiene, energia, etc.).
-              </div>
-            )}
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -289,6 +289,36 @@ function TeamPlayContent() {
   const [hasSession, setHasSession] = useState(false);
   const [personRole, setPersonRole] = useState<string | undefined>(undefined);
 
+  // Carregar nome guardado no localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("teamplay_name");
+      if (savedName) {
+        setName(savedName);
+      }
+    }
+  }, []);
+
+  // Guardar nome no localStorage sempre que mudar
+  useEffect(() => {
+    if (typeof window !== "undefined" && name) {
+      localStorage.setItem("teamplay_name", name);
+    }
+  }, [name]);
+
+  // Verificar se tem sessão antes de mostrar a página
+  useEffect(() => {
+    // Só mostra erro se já terminou o loading E não tem pessoa E não tem sessão ativa
+    if (!isRestoringSession && !person && !hasSession) {
+      // Não tem sessão - mostrar mensagem
+      setToast({
+        message:
+          "🔒 Precisas de fazer login para aceder ao Team Play! Vai à página principal e faz login.",
+        type: "error",
+      });
+    }
+  }, [person, isRestoringSession, hasSession]);
+
   // Dark mode
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -393,14 +423,6 @@ function TeamPlayContent() {
         setPlayerId(parsed.playerId);
         setRoom(j.room);
         setHasSession(true);
-
-        // Mostra toast se houver jogo em curso
-        if (!j.room.winner) {
-          showToast(
-            `Jogo em curso: ${j.room.game === "chess" ? "Xadrez" : j.room.game === "connect4" ? "4 em Linha" : "Jogo do Galo"}`,
-            "info",
-          );
-        }
       } finally {
         if (!cancelled) setIsRestoringSession(false);
       }
@@ -503,11 +525,89 @@ function TeamPlayContent() {
       console.log("SSE reconectando...");
     };
 
+    // Sincronização automática a cada 100ms para garantir consistência
+    const syncInterval = setInterval(async () => {
+      if (!room?.id) return;
+      try {
+        const res = await fetch("/api/team-play", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "get",
+            roomId: room.id,
+            playerId: playerId, // Para actualizar lastSeen
+          }),
+        });
+        const j = await res.json();
+        if (j?.ok && j?.room) {
+          // Só atualiza se houver mudanças
+          if (j.room.updatedAt > lastUpdateTime) {
+            lastUpdateTime = j.room.updatedAt;
+            setRoom(j.room);
+          }
+        }
+      } catch (e) {
+        console.error("Erro na sincronização automática:", e);
+      }
+    }, 100);
+
+    // Heartbeat a cada 5 segundos para manter jogador conectado
+    const heartbeatInterval = setInterval(async () => {
+      if (!room?.id || !playerId) return;
+      try {
+        await fetch("/api/team-play", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "heartbeat",
+            roomId: room.id,
+            playerId: playerId,
+          }),
+        });
+      } catch (e) {
+        console.error("Erro no heartbeat:", e);
+      }
+    }, 5000);
+
     return () => {
       eventSource.close();
       if (syncTimeout) clearTimeout(syncTimeout);
+      clearInterval(syncInterval);
+      clearInterval(heartbeatInterval);
     };
   }, [playerId, room?.id]);
+
+  // Verificar jogadores desconectados após jogo terminado (a cada 5s)
+  useEffect(() => {
+    if (!room?.id || !room?.winner) return;
+
+    const checkInterval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/team-play", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "check-players",
+            roomId: room.id,
+          }),
+        });
+        const j = await res.json();
+        if (j?.ok && j.changed) {
+          setRoom(j.room);
+          if (j.disconnectedCount > 0) {
+            showToast(
+              `🚪 ${j.disconnectedCount} jogador(es) saiu. Slot livre!`,
+              "info",
+            );
+          }
+        }
+      } catch (e) {
+        console.error("Erro ao verificar jogadores:", e);
+      }
+    }, 5000);
+
+    return () => clearInterval(checkInterval);
+  }, [room?.id, room?.winner]);
 
   async function createRoom() {
     // Verifica se já tem um jogo em curso (só bloqueia se já estiver numa sala ativa)
@@ -561,12 +661,29 @@ function TeamPlayContent() {
       showToast("Indica o código de convite", "error");
       return;
     }
-    const j = await call({ action: "join", roomId, name: name.trim() });
+
+    // Tentar reconectar se já tínhamos playerId guardado
+    const sessionData =
+      typeof window !== "undefined"
+        ? JSON.parse(
+            window.localStorage.getItem(TEAM_PLAY_SESSION_KEY) || "null",
+          )
+        : null;
+
+    const j = await call({
+      action: "join",
+      roomId,
+      name: name.trim(),
+      playerId: sessionData?.playerId, // Para reconectar se for o mesmo jogador
+      personId: person?.id, // Para reconexão por personId
+    });
+
     if (!j?.ok) {
       showToast(j?.error || "Erro ao entrar", "error");
       return;
     }
-    showToast("Entraste na sala!", "success");
+
+    showToast(j.reconnected ? "Reconectado!" : "Entraste na sala!", "success");
     setRoom(j.room);
     setPlayerId(j.playerId);
     setHasSession(true);
@@ -615,8 +732,14 @@ function TeamPlayContent() {
 
   async function closeRoom(roomId: string) {
     // Admins/gestores podem fechar sem estar na sala
-    if (!playerId && personRole !== "admin" && personRole !== "gestor") {
-      showToast("Precisas de estar numa sessão ou ser admin/gestor", "error");
+    const isAdmin = personRole === "admin" || personRole === "gestor";
+    const isHost =
+      playerId &&
+      roomId &&
+      playerId === room?.players?.find((p) => p.id === playerId)?.id;
+
+    if (!isAdmin && !isHost) {
+      showToast("Precisas de ser admin/gestor ou dono da sala", "error");
       return;
     }
     const j = await call({
@@ -639,6 +762,20 @@ function TeamPlayContent() {
   }
 
   function backToLobby() {
+    // Apenas limpa a sala actual, mantendo o nome e sessão
+    clearSession();
+    setRoom(null);
+    setPlayerId(null);
+    setSelected(null);
+    setToast(null);
+    // NÃO limpar o nome - manter para próxima vez
+    setGame("tictactoe");
+    // NÃO limpar hasSession - manter sessão do Team Play
+    if (roomFromUrl) router.replace("/team-play");
+  }
+
+  function leaveTeamPlay() {
+    // Sair completamente do Team Play (limpar tudo)
     clearSession();
     setRoom(null);
     setPlayerId(null);
@@ -723,72 +860,43 @@ function TeamPlayContent() {
         </p>
       </section>
 
-      {/* Banner de jogo em curso - mostrar sempre que houver sala com 1+ jogadores */}
-      {hasSession && room && (
+      {/* Aviso para quem não tem sessão */}
+      {!isRestoringSession && !person && !hasSession && (
         <div
           style={{
-            ...styles.cardCompact,
-            marginBottom: 16,
-            background: room.winner
-              ? "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1))"
-              : "linear-gradient(135deg, rgba(34,197,94,0.15), rgba(22,163,74,0.1))",
-            border: room.winner
-              ? "1px solid rgba(251,191,36,0.3)"
-              : "1px solid rgba(34,197,94,0.3)",
+            maxWidth: 600,
+            margin: "40px auto",
+            padding: 24,
+            borderRadius: 16,
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "2px solid rgba(239, 68, 68, 0.3)",
+            textAlign: "center",
           }}
         >
-          <div
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+          <h2 style={{ margin: "0 0 12px 0", color: "#ef4444" }}>
+            Acesso Restrito
+          </h2>
+          <p style={{ margin: "0 0 20px 0", color: "var(--muted)" }}>
+            Precisas de fazer login para aceder ao Team Play!
+            <br />
+            Esta área permite jogos com moedas e apostas.
+          </p>
+          <button
+            onClick={() => router.push("/")}
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              padding: "12px 28px",
+              borderRadius: 10,
+              border: "none",
+              background: "var(--accent)",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 14,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <span style={{ fontSize: 24 }}>{room.winner ? "🏁" : "🎮"}</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>
-                  {room.winner
-                    ? `Jogo Terminado - ${room.game === "chess" ? "Xadrez" : room.game === "connect4" ? "4 em Linha" : "Jogo do Galo"}`
-                    : `Jogo em Curso - ${room.game === "chess" ? "Xadrez" : room.game === "connect4" ? "4 em Linha" : "Jogo do Galo"}`}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--muted)",
-                  }}
-                >
-                  Sala: <strong>{room.id}</strong> • És{" "}
-                  {me?.color === "X" || me?.color === "w"
-                    ? "X/Brancas"
-                    : "O/Pretas"}
-                  {room.winner
-                    ? ` • Vencedor: ${room.winner}`
-                    : room.turn === me?.color
-                      ? " • 🟢 É o teu turno!"
-                      : " • ⏳ Aguarda o adversário"}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                // Scroll para o jogo
-                window.scrollTo({
-                  top: 500,
-                  behavior: "smooth",
-                });
-              }}
-              style={btn(room.winner ? "#f59e0b" : "#22c55e")}
-            >
-              {room.winner ? "Ver Resultado" : "Ver Jogo"}
-            </button>
-          </div>
+            🏠 Ir para Página Principal
+          </button>
         </div>
       )}
 
@@ -867,23 +975,80 @@ function TeamPlayContent() {
                 >
                   {/* Botão Ver - Espreitar o jogo */}
                   <button
-                    onClick={() => {
-                      // Scroll para a área do jogo
-                      const gameArea =
-                        document.querySelector("[data-game-area]");
-                      if (gameArea) {
-                        gameArea.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
+                    onClick={async () => {
+                      // Se já estamos na sala, fazer scroll
+                      if (room && room.id === r.id) {
+                        const gameArea =
+                          document.querySelector("[data-game-area]");
+                        if (gameArea) {
+                          gameArea.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center",
+                          });
+                        }
+                        showToast(`👁️ A ver sala ${r.id}`, "success");
+                        return;
                       }
-                      showToast(`A ver sala ${r.id}`, "info");
+
+                      // Se não temos sessão, mostrar erro
+                      if (!hasSession && !person) {
+                        showToast(
+                          "🔒 Precisas de fazer login para espreitar!",
+                          "error",
+                        );
+                        return;
+                      }
+
+                      // Entrar como espectador
+                      try {
+                        const spectorName =
+                          (person?.name || name || "Espectador") +
+                          " (Espectador)";
+                        const res = await fetch("/api/team-play", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            action: "join",
+                            roomId: r.id,
+                            name: spectorName,
+                            personId: person?.id,
+                            isSpectator: true,
+                          }),
+                        });
+                        const j = await res.json();
+                        if (j?.ok) {
+                          setRoom(j.room);
+                          setPlayerId(j.playerId);
+                          setHasSession(true);
+                          saveSession({
+                            roomId: j.room.id,
+                            playerId: j.playerId,
+                            name: spectorName,
+                          });
+                          // Scroll para o jogo
+                          setTimeout(() => {
+                            const gameArea =
+                              document.querySelector("[data-game-area]");
+                            if (gameArea) {
+                              gameArea.scrollIntoView({
+                                behavior: "smooth",
+                                block: "center",
+                              });
+                            }
+                          }, 500);
+                          showToast(`👁️ A ver sala ${r.id}`, "success");
+                        } else {
+                          showToast(j?.error || "Erro ao entrar", "error");
+                        }
+                      } catch (e) {
+                        showToast("Erro de ligação", "error");
+                      }
                     }}
                     style={{
                       ...btn("#6b7280"),
                       padding: "10px 12px",
                     }}
-                    title="Ver jogo"
+                    title="Ver jogo como espectador"
                   >
                     👁️
                   </button>

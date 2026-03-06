@@ -1,8 +1,15 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
-type GameType = "clickrush" | "tictactoe" | "chess" | "connect4" | "checkers" | "mahjong";
+type GameType =
+  | "clickrush"
+  | "tictactoe"
+  | "chess"
+  | "connect4"
+  | "checkers"
+  | "mahjong";
 
 interface Game {
   id: GameType;
@@ -70,7 +77,11 @@ interface MinigamesModalProps {
   onSelectGame: (game: GameType) => void;
 }
 
-export default function GameMenuModal({ isOpen, onClose, onSelectGame }: MinigamesModalProps) {
+export default function GameMenuModal({
+  isOpen,
+  onClose,
+  onSelectGame,
+}: MinigamesModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -104,10 +115,25 @@ export default function GameMenuModal({ isOpen, onClose, onSelectGame }: Minigam
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 24,
+          }}
+        >
           <div>
-            <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>🎮 Minijogos</h2>
-            <p style={{ margin: "4px 0 0 0", color: "var(--muted)", fontSize: 14 }}>
+            <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>
+              🎮 Minijogos
+            </h2>
+            <p
+              style={{
+                margin: "4px 0 0 0",
+                color: "var(--muted)",
+                fontSize: 14,
+              }}
+            >
               Escolhe um jogo e diverte-te!
             </p>
           </div>
@@ -165,7 +191,13 @@ export default function GameMenuModal({ isOpen, onClose, onSelectGame }: Minigam
                 <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4 }}>
                   {game.name}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--muted)",
+                    marginBottom: 8,
+                  }}
+                >
                   {game.description}
                 </div>
                 <div
@@ -186,7 +218,88 @@ export default function GameMenuModal({ isOpen, onClose, onSelectGame }: Minigam
           ))}
         </div>
 
-        <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--card-border)", textAlign: "center" }}>
+        {/* Team Building - Multiplayer Online */}
+        <div
+          style={{
+            marginTop: 24,
+            paddingTop: 20,
+            borderTop: "2px dashed var(--card-border)",
+          }}
+        >
+          <h3
+            style={{
+              margin: "0 0 12px 0",
+              fontSize: 16,
+              color: "var(--muted)",
+            }}
+          >
+            🌐 Multiplayer Online
+          </h3>
+          <Link
+            href="/team-play"
+            target="_blank"
+            style={{ textDecoration: "none" }}
+          >
+            <button
+              style={{
+                width: "100%",
+                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                border: "none",
+                borderRadius: 16,
+                padding: 20,
+                cursor: "pointer",
+                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                transition: "all 0.3s ease",
+                boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow =
+                  "0 8px 20px rgba(99, 102, 241, 0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 12px rgba(99, 102, 241, 0.3)";
+              }}
+            >
+              <div style={{ fontSize: 40 }}>🤝</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 18, color: "#fff" }}>
+                  Team Building
+                </div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
+                  Joga online com a tua equipa!
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#fff",
+                    background: "rgba(255,255,255,0.2)",
+                    padding: "4px 8px",
+                    borderRadius: 12,
+                    display: "inline-block",
+                    marginTop: 6,
+                  }}
+                >
+                  👥 2 Jogadores Online
+                </div>
+              </div>
+            </button>
+          </Link>
+        </div>
+
+        <div
+          style={{
+            marginTop: 24,
+            paddingTop: 16,
+            borderTop: "1px solid var(--card-border)",
+            textAlign: "center",
+          }}
+        >
           <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>
             💡 Dica: Podes jogar quantas vezes quiseres!
           </p>

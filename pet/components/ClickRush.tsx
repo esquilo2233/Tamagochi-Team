@@ -43,14 +43,14 @@ export default function ClickRush({
       });
       const j = await res.json();
       if (j?.ok) {
-        setResultMsg(`Você ganhou ${j.coinsAwarded} moedas!`);
+        setResultMsg(`Ganhaste ${j.coinsAwarded} moedas!`);
         onFinish?.(count, j.coinsAwarded);
       } else {
-        setResultMsg("Resultado salvo localmente.");
+        setResultMsg("Resultado guardado localmente.");
         onFinish?.(count, 0);
       }
     } catch (e) {
-      setResultMsg("Erro de rede — tente novamente.");
+      setResultMsg("Erro de rede — tenta novamente.");
       onFinish?.(count, 0);
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ export default function ClickRush({
             cursor: "pointer",
           }}
         >
-          {running ? "Clique!" : loading ? "Enviando..." : "Concluído"}
+          {running ? "Clica!" : loading ? "A enviar..." : "Concluído"}
         </button>
       </div>
 

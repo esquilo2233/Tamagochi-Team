@@ -476,6 +476,20 @@ function TeamPlayContent() {
             }, 500);
           }
 
+          // Scroll automático para o jogo quando há 2 jogadores
+          if (
+            newRoom.players?.length === 2 &&
+            (!room.players || room.players.length < 2)
+          ) {
+            setTimeout(() => {
+              window.scrollTo({
+                top: 600,
+                behavior: "smooth",
+              });
+              showToast("🎮 Jogo iniciado! Boa sorte!", "success");
+            }, 800);
+          }
+
           lastUpdateTime = newRoom.updatedAt;
           setRoom(newRoom);
         }

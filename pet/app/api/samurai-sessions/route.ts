@@ -5,15 +5,24 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     if (!body || !body.action) {
-      return NextResponse.json({ ok: false, error: "missing action" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "missing action" },
+        { status: 400 },
+      );
     }
 
     if (body.action === "start") {
       if (!body.personId) {
-        return NextResponse.json({ ok: false, error: "missing personId" }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: "missing personId" },
+          { status: 400 },
+        );
       }
       if (!body.petId) {
-        return NextResponse.json({ ok: false, error: "missing petId" }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: "missing petId" },
+          { status: 400 },
+        );
       }
 
       // Verificar se já existe sessão ativa para esta pessoa
@@ -41,7 +50,10 @@ export async function POST(req: Request) {
 
     if (body.action === "stop") {
       if (!body.sessionId) {
-        return NextResponse.json({ ok: false, error: "missing sessionId" }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: "missing sessionId" },
+          { status: 400 },
+        );
       }
 
       const session = await prisma.samuraiSession.findUnique({
@@ -50,13 +62,18 @@ export async function POST(req: Request) {
       });
 
       if (!session) {
-        return NextResponse.json({ ok: false, error: "session not found" }, { status: 404 });
+        return NextResponse.json(
+          { ok: false, error: "session not found" },
+          { status: 404 },
+        );
       }
 
       // Calcular tempo total baseado no startedAt até agora
       const now = new Date();
       const started = session.startedAt;
-      const totalSessionSeconds = Math.floor((now.getTime() - started.getTime()) / 1000);
+      const totalSessionSeconds = Math.floor(
+        (now.getTime() - started.getTime()) / 1000,
+      );
 
       // Atualizar tempo total da pessoa
       if (totalSessionSeconds > 0) {
@@ -81,9 +98,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, session: updatedSession });
     }
 
-    return NextResponse.json({ ok: false, error: "unknown action" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "unknown action" },
+      { status: 400 },
+    );
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: err.message },
+      { status: 500 },
+    );
   }
 }
 
@@ -95,7 +118,16 @@ export async function GET(req: Request) {
     if (personId) {
       const sessions = await prisma.samuraiSession.findMany({
         where: { personId: Number(personId), active: true },
-        include: { person: true },
+        include: {
+          person: {
+            select: {
+              id: true,
+              name: true,
+              coins: true,
+              totalTimeSeconds: true,
+            },
+          },
+        },
         orderBy: { startedAt: "desc" },
       });
       return NextResponse.json(sessions);
@@ -104,11 +136,23 @@ export async function GET(req: Request) {
     // Retornar todas as sessões ativas
     const sessions = await prisma.samuraiSession.findMany({
       where: { active: true },
-      include: { person: true },
+      include: {
+        person: {
+          select: {
+            id: true,
+            name: true,
+            coins: true,
+            totalTimeSeconds: true,
+          },
+        },
+      },
       orderBy: { startedAt: "desc" },
     });
     return NextResponse.json(sessions);
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: err.message },
+      { status: 500 },
+    );
   }
 }

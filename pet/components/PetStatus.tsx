@@ -142,8 +142,15 @@ export default function PetStatus() {
         setHasSession(true);
         setCurrentPersonId(sessionJson.person.id);
         setCurrentPersonCoins(sessionJson.person.coins ?? 0);
-        setCompanionCode(sessionJson.person.code ?? "");
       }
+
+      // Obter código APENAS para o próprio utilizador
+      const codeRes = await fetch("/api/my-code");
+      const codeJson = await codeRes.json();
+      if (mounted && codeJson?.ok && codeJson?.person) {
+        setCompanionCode(codeJson.person.code ?? "");
+      }
+
       // Carregar dados da pessoa autenticada (apenas nome e moedas)
       const meRes = await fetch("/api/me");
       const meJson = await meRes.json();

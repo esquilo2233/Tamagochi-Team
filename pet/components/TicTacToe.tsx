@@ -6,6 +6,7 @@ type Player = "X" | "O" | null;
 type Board = Player[];
 type Winner = "X" | "O" | "draw" | null;
 type Difficulty = "easy" | "medium" | "hard";
+type GameMode = "pve" | "pvp";
 
 export default function TicTacToe({
   personId,
@@ -20,6 +21,7 @@ export default function TicTacToe({
   const [loading, setLoading] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [samuraiMovePending, setSamuraiMovePending] = useState(false);
+  const [gameMode, setGameMode] = useState<GameMode>("pve");
 
   function calculateWinner(squares: Board): Player {
     const lines = [
@@ -33,13 +35,8 @@ export default function TicTacToe({
       [2, 4, 6],
     ];
     for (const [a, b, c] of lines) {
-      if (
-        squares[a] &&
-        squares[a] === squares[b] &&
-        squares[a] === squares[c]
-      ) {
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c])
         return squares[a];
-      }
     }
     return null;
   }
@@ -102,11 +99,9 @@ export default function TicTacToe({
         if (w === "O") return 10 - depth;
         if (w === "X") return depth - 10;
         if (testBoard.every((c) => c !== null)) return 0;
-
         const empties = testBoard
           .map((v, idx) => (v === null ? idx : -1))
           .filter((idx) => idx !== -1);
-
         if (isSamuraiTurn) {
           let best = -Infinity;
           for (const idx of empties) {
@@ -118,7 +113,6 @@ export default function TicTacToe({
           }
           return best;
         }
-
         let best = Infinity;
         for (const idx of empties) {
           const next = [...testBoard];
@@ -129,9 +123,8 @@ export default function TicTacToe({
         }
         return best;
       }
-
-      let bestMove = emptyIndexes[0];
-      let bestScore = -Infinity;
+      let bestMove = emptyIndexes[0],
+        bestScore = -Infinity;
       if (squares[4] === null) {
         const test = [...squares];
         test[4] = "O";
@@ -153,43 +146,43 @@ export default function TicTacToe({
       }
       return bestMove;
     }
-
     return emptyIndexes[0];
   }
 
   function handleClick(i: number) {
-    if (board[i] || winner || !isXNext || samuraiMovePending) return;
-
+    if (
+      board[i] ||
+      winner ||
+      (!isXNext && gameMode === "pve") ||
+      samuraiMovePending
+    )
+      return;
     const newBoard = [...board];
-    newBoard[i] = "X";
+    newBoard[i] = isXNext ? "X" : "O";
     setBoard(newBoard);
-
     const newWinner = calculateWinner(newBoard);
     if (newWinner) {
       setWinner(newWinner);
       return;
-    } else if (newBoard.every((cell) => cell !== null)) {
+    }
+    if (newBoard.every((cell) => cell !== null)) {
       setWinner("draw");
       return;
     }
-
-    setIsXNext(false);
-    setSamuraiMovePending(true);
+    setIsXNext(!isXNext);
+    if (gameMode === "pve") setSamuraiMovePending(true);
   }
 
   useEffect(() => {
-    if (winner || isXNext || !samuraiMovePending) return;
-
+    if (gameMode !== "pve" || winner || isXNext || !samuraiMovePending) return;
     const moveIndex = getBestSamuraiMove(board);
     if (moveIndex < 0) return;
-
     const timer = setTimeout(
       () => {
         setBoard((prev) => {
           if (prev[moveIndex]) return prev;
           const next = [...prev];
           next[moveIndex] = "O";
-
           const newWinner = calculateWinner(next);
           if (newWinner) {
             setWinner(newWinner);
@@ -198,16 +191,14 @@ export default function TicTacToe({
           } else {
             setIsXNext(true);
           }
-
           setSamuraiMovePending(false);
           return next;
         });
       },
       difficulty === "easy" ? 600 : difficulty === "medium" ? 400 : 250,
     );
-
     return () => clearTimeout(timer);
-  }, [board, winner, isXNext, samuraiMovePending, difficulty]);
+  }, [board, winner, isXNext, samuraiMovePending, difficulty, gameMode]);
 
   async function finish() {
     if (!winner) return;
@@ -215,12 +206,14 @@ export default function TicTacToe({
       onFinish?.("draw", 0);
       return;
     }
-
     setLoading(true);
     try {
       const outcome = winner === "X" ? "win" : "lose";
-      const score = winner === "X" ? 1 : 0;
-      const payload: any = { game: "tictactoe", score, outcome };
+      const payload: any = {
+        game: "tictactoe",
+        score: winner === "X" ? 1 : 0,
+        outcome,
+      };
       if (personId) payload.personId = personId;
       const res = await fetch("/api/games", {
         method: "POST",
@@ -229,7 +222,7 @@ export default function TicTacToe({
       });
       const j = await res.json();
       onFinish?.(winner, j.coinsAwarded || 0);
-    } catch (e) {
+    } catch {
       onFinish?.(winner, 0);
     } finally {
       setLoading(false);
@@ -238,7 +231,6 @@ export default function TicTacToe({
 
   useEffect(() => {
     if (winner) finish();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [winner]);
 
   function reset() {
@@ -252,9 +244,9 @@ export default function TicTacToe({
     ? winner === "draw"
       ? "🤝 Empate!"
       : winner === "X"
-        ? "🎉 Ganhaste!"
-        : "🤖 Samurai venceu!"
-    : `Próximo: ${isXNext ? "Tu (X)" : "Samurai (O)"}`;
+        ? "🎉 " + (gameMode === "pvp" ? "Jogador 1 venceu!" : "Ganhaste!")
+        : "🤖 " + (gameMode === "pvp" ? "Jogador 2 venceu!" : "Samurai venceu!")
+    : `Próximo: ${isXNext ? "X (Jogador 1)" : gameMode === "pvp" ? "O (Jogador 2)" : "Samurai (O)"}`;
 
   return (
     <div
@@ -264,7 +256,7 @@ export default function TicTacToe({
         background: "var(--card-bg)",
         color: "var(--foreground)",
         textAlign: "center",
-        maxWidth: 400,
+        maxWidth: 450,
         margin: "0 auto",
       }}
     >
@@ -272,7 +264,7 @@ export default function TicTacToe({
         ⭕ Jogo do Galo
       </h4>
 
-      {/* Selector de Dificuldade */}
+      {/* Modo de Jogo */}
       <div style={{ marginBottom: 16 }}>
         <div
           style={{
@@ -282,40 +274,101 @@ export default function TicTacToe({
             flexWrap: "wrap",
           }}
         >
-          {(["easy", "medium", "hard"] as Difficulty[]).map((diff) => (
-            <button
-              key={diff}
-              onClick={() => {
-                setDifficulty(diff);
-                reset();
-              }}
-              disabled={!!winner}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 8,
-                border:
-                  difficulty === diff
-                    ? "2px solid var(--accent)"
-                    : "2px solid var(--card-border)",
-                background:
-                  difficulty === diff ? "var(--accent)" : "var(--card-bg)",
-                color: difficulty === diff ? "#fff" : "var(--foreground)",
-                cursor: winner ? "not-allowed" : "pointer",
-                fontWeight: difficulty === diff ? 600 : 400,
-                opacity: winner ? 0.5 : 1,
-                transition: "all 0.2s ease",
-                fontSize: 13,
-              }}
-            >
-              {diff === "easy"
-                ? "🟢 Fácil"
-                : diff === "medium"
-                  ? "🟡 Médio"
-                  : "🔴 Difícil"}
-            </button>
-          ))}
+          <button
+            onClick={() => {
+              setGameMode("pve");
+              reset();
+            }}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 8,
+              border:
+                gameMode === "pve"
+                  ? "2px solid var(--accent)"
+                  : "2px solid var(--card-border)",
+              background:
+                gameMode === "pve" ? "var(--accent)" : "var(--card-bg)",
+              color: gameMode === "pve" ? "#fff" : "var(--foreground)",
+              cursor: "pointer",
+              fontWeight: gameMode === "pve" ? 600 : 400,
+              transition: "all 0.2s ease",
+              fontSize: 13,
+            }}
+          >
+            🆚 1 vs CPU
+          </button>
+          <button
+            onClick={() => {
+              setGameMode("pvp");
+              reset();
+            }}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 8,
+              border:
+                gameMode === "pvp"
+                  ? "2px solid var(--accent)"
+                  : "2px solid var(--card-border)",
+              background:
+                gameMode === "pvp" ? "var(--accent)" : "var(--card-bg)",
+              color: gameMode === "pvp" ? "#fff" : "var(--foreground)",
+              cursor: "pointer",
+              fontWeight: gameMode === "pvp" ? 600 : 400,
+              transition: "all 0.2s ease",
+              fontSize: 13,
+            }}
+          >
+            👥 2 Jogadores
+          </button>
         </div>
       </div>
+
+      {/* Dificuldade (só PvE) */}
+      {gameMode === "pve" && (
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            {(["easy", "medium", "hard"] as Difficulty[]).map((diff) => (
+              <button
+                key={diff}
+                onClick={() => {
+                  setDifficulty(diff);
+                  reset();
+                }}
+                disabled={!!winner}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  border:
+                    difficulty === diff
+                      ? "2px solid var(--accent)"
+                      : "2px solid var(--card-border)",
+                  background:
+                    difficulty === diff ? "var(--accent)" : "var(--card-bg)",
+                  color: difficulty === diff ? "#fff" : "var(--foreground)",
+                  cursor: winner ? "not-allowed" : "pointer",
+                  fontWeight: difficulty === diff ? 600 : 400,
+                  opacity: winner ? 0.5 : 1,
+                  transition: "all 0.2s ease",
+                  fontSize: 13,
+                }}
+              >
+                {diff === "easy"
+                  ? "🟢 Fácil"
+                  : diff === "medium"
+                    ? "🟡 Médio"
+                    : "🔴 Difícil"}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Status */}
       <div
@@ -358,7 +411,7 @@ export default function TicTacToe({
           <button
             key={idx}
             onClick={() => handleClick(idx)}
-            disabled={!!cell || !!winner || (!isXNext && !winner)}
+            disabled={!!cell || !!winner || (!isXNext && gameMode === "pve")}
             style={{
               width: "100%",
               aspectRatio: "1 / 1",
@@ -377,19 +430,20 @@ export default function TicTacToe({
                   : cell === "O"
                     ? "#3b82f6"
                     : "var(--foreground)",
-              cursor: !cell && !winner && isXNext ? "pointer" : "not-allowed",
+              cursor:
+                !cell && !winner && (isXNext || gameMode === "pvp")
+                  ? "pointer"
+                  : "not-allowed",
               transition: "all 0.2s ease",
               boxShadow: cell ? "inset 0 2px 8px rgba(0,0,0,0.1)" : "none",
             }}
             onMouseEnter={(e) => {
-              if (!cell && !winner && isXNext) {
+              if (!cell && !winner && (isXNext || gameMode === "pvp"))
                 e.currentTarget.style.background = "rgba(59, 130, 246, 0.1)";
-              }
             }}
             onMouseLeave={(e) => {
-              if (!cell && !winner && isXNext) {
+              if (!cell && !winner && (isXNext || gameMode === "pvp"))
                 e.currentTarget.style.background = cell ? "" : "var(--card-bg)";
-              }
             }}
           >
             {cell === "X" ? "❌" : cell === "O" ? "⭕" : ""}

@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 type Cell = "R" | "Y" | null;
 type Winner = "R" | "Y" | "draw" | null;
 type Difficulty = "easy" | "medium" | "hard";
+type GameMode = "pve" | "pvp";
 
 const ROWS = 6;
 const COLS = 7;
@@ -154,13 +155,22 @@ export default function ConnectFour({
   const [loading, setLoading] = useState(false);
   const [samuraiMovePending, setSamuraiMovePending] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [gameMode, setGameMode] = useState<GameMode>("pve");
 
   const status = useMemo(() => {
     if (winner === "draw") return "🤝 Empate!";
-    if (winner === "R") return "🎉 Ganhaste!";
-    if (winner === "Y") return "🤖 Samurai venceu!";
-    return turn === "R" ? "A tua vez (vermelho)" : "Vez do Samurai...";
-  }, [winner, turn]);
+    if (winner === "R")
+      return "🎉 " + (gameMode === "pvp" ? "Jogador 1 venceu!" : "Ganhaste!");
+    if (winner === "Y")
+      return (
+        "🤖 " + (gameMode === "pvp" ? "Jogador 2 venceu!" : "Samurai venceu!")
+      );
+    return turn === "R"
+      ? "A tua vez (vermelho)"
+      : gameMode === "pvp"
+        ? "Vez do Jogador 2 (amarelo)"
+        : "Vez do Samurai...";
+  }, [winner, turn, gameMode]);
 
   function play(col: number, piece: "R" | "Y") {
     if (winner || (piece === "R" && samuraiMovePending)) return;
@@ -175,14 +185,15 @@ export default function ConnectFour({
       setWinner(w);
     } else {
       setTurn(piece === "R" ? "Y" : "R");
-      if (piece === "R") {
+      if (piece === "R" && gameMode === "pve") {
         setSamuraiMovePending(true);
       }
     }
   }
 
   useEffect(() => {
-    if (winner || turn !== "Y" || !samuraiMovePending) return;
+    if (gameMode !== "pve" || winner || turn !== "Y" || !samuraiMovePending)
+      return;
     const c = aiMove(board, difficulty);
     if (c < 0) return;
 
@@ -208,7 +219,7 @@ export default function ConnectFour({
     );
 
     return () => clearTimeout(t);
-  }, [turn, board, winner, samuraiMovePending, difficulty]);
+  }, [turn, board, winner, samuraiMovePending, difficulty, gameMode]);
 
   async function finishGame() {
     if (!winner) return;

@@ -7,21 +7,37 @@ type Winner = "X" | "O" | "draw" | null;
 type Board = Player[];
 type Difficulty = "easy" | "medium" | "hard";
 
-export default function TicTacToe({ personId, onFinish }: { personId?: number; onFinish?: (winner: "X" | "O" | "draw", score: number) => void }) {
+export default function TicTacToe({
+  personId,
+  onFinish,
+}: {
+  personId?: number;
+  onFinish?: (winner: "X" | "O" | "draw", score: number) => void;
+}) {
   const [board, setBoard] = useState<Board>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<Winner>(null);
   const [loading, setLoading] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [samuraiMovePending, setSamuraiMovePending] = useState(false);
 
   function calculateWinner(squares: Board): Player {
     const lines = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
-      [0, 4, 8], [2, 4, 6], // diagonals
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8], // rows
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8], // columns
+      [0, 4, 8],
+      [2, 4, 6], // diagonals
     ];
     for (const [a, b, c] of lines) {
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      if (
+        squares[a] &&
+        squares[a] === squares[b] &&
+        squares[a] === squares[c]
+      ) {
         return squares[a];
       }
     }
@@ -36,7 +52,9 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
 
     if (difficulty === "easy") {
       // Fácil: mais aleatório
-      const pref = [4, 0, 2, 6, 8, 1, 3, 5, 7].filter((idx) => squares[idx] === null);
+      const pref = [4, 0, 2, 6, 8, 1, 3, 5, 7].filter(
+        (idx) => squares[idx] === null,
+      );
       if (Math.random() < 0.45 && pref.length > 0) return pref[0];
       return emptyIndexes[Math.floor(Math.random() * emptyIndexes.length)];
     }
@@ -116,48 +134,64 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
 
   function handleClick(i: number) {
     // Jogador humano é sempre X; Samurai é O
-    if (board[i] || winner || !isXNext) return;
+    if (board[i] || winner || !isXNext || samuraiMovePending) return;
 
     const newBoard = [...board];
     newBoard[i] = "X";
     setBoard(newBoard);
-    setIsXNext(false);
 
+    // Verificar vitória/empate IMEDIATAMENTE
     const newWinner = calculateWinner(newBoard);
     if (newWinner) {
       setWinner(newWinner);
-    } else if (newBoard.every(cell => cell !== null)) {
+      return;
+    } else if (newBoard.every((cell) => cell !== null)) {
       setWinner("draw");
+      return;
     }
+
+    // Passar vez ao Samurai
+    setIsXNext(false);
+    setSamuraiMovePending(true);
   }
 
   useEffect(() => {
-    if (winner || isXNext) return;
+    // Se já há vencedor ou não é vez do Samurai, não faz nada
+    if (winner || isXNext || !samuraiMovePending) return;
 
     const moveIndex = getBestSamuraiMove(board);
     if (moveIndex < 0) return;
 
-    const timer = setTimeout(() => {
-      setBoard((prev) => {
-        if (prev[moveIndex] || winner) return prev;
-        const next = [...prev];
-        next[moveIndex] = "O";
+    const timer = setTimeout(
+      () => {
+        setBoard((prev) => {
+          // Verificar novamente se a célula está vazia
+          if (prev[moveIndex]) return prev;
+          const next = [...prev];
+          next[moveIndex] = "O";
 
-        const newWinner = calculateWinner(next);
-        if (newWinner) {
-          setWinner(newWinner);
-        } else if (next.every((cell) => cell !== null)) {
-          setWinner("draw");
-        } else {
-          setIsXNext(true);
-        }
+          // Verificar se há vencedor ou empate IMEDIATAMENTE
+          const newWinner = calculateWinner(next);
+          if (newWinner) {
+            setWinner(newWinner);
+          } else if (next.every((cell) => cell !== null)) {
+            setWinner("draw");
+          } else {
+            // Continuar jogo - vez do jogador
+            setIsXNext(true);
+          }
 
-        return next;
-      });
-    }, difficulty === "easy" ? 500 : difficulty === "medium" ? 350 : 200);
+          // Limpar flag do Samurai
+          setSamuraiMovePending(false);
+
+          return next;
+        });
+      },
+      difficulty === "easy" ? 500 : difficulty === "medium" ? 350 : 200,
+    );
 
     return () => clearTimeout(timer);
-  }, [isXNext, board, winner, difficulty]);
+  }, [board, winner, isXNext, samuraiMovePending, difficulty]);
 
   async function finish() {
     if (!winner) {
@@ -172,12 +206,12 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
     try {
       const outcome = winner === "X" ? "win" : "lose";
       const score = winner === "X" ? 1 : 0; // score de registo (moedas são decididas no backend)
-      const payload: any = { game: 'tictactoe', score };
+      const payload: any = { game: "tictactoe", score };
       payload.outcome = outcome;
       if (personId) payload.personId = personId;
-      const res = await fetch('/api/games', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const j = await res.json();
@@ -197,12 +231,14 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
     if (winner) {
       finish();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [winner]);
 
   function reset() {
     setBoard(Array(9).fill(null));
     setIsXNext(true);
     setWinner(null);
+    setSamuraiMovePending(false);
   }
 
   function renderSquare(i: number) {
@@ -214,11 +250,16 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
           width: 60,
           height: 60,
           fontSize: 32,
-          fontWeight: 'bold',
-          border: '2px solid var(--card-border)',
-          background: board[i] ? 'var(--card-bg)' : 'var(--background)',
-          color: board[i] === 'X' ? '#ff6b6b' : board[i] === 'O' ? '#4ecdc4' : 'var(--foreground)',
-          cursor: board[i] || winner ? 'not-allowed' : 'pointer',
+          fontWeight: "bold",
+          border: "2px solid var(--card-border)",
+          background: board[i] ? "var(--card-bg)" : "var(--background)",
+          color:
+            board[i] === "X"
+              ? "#ff6b6b"
+              : board[i] === "O"
+                ? "#4ecdc4"
+                : "var(--foreground)",
+          cursor: board[i] || winner ? "not-allowed" : "pointer",
           borderRadius: 8,
         }}
       >
@@ -234,36 +275,61 @@ export default function TicTacToe({ personId, onFinish }: { personId?: number; o
     : `Próximo: ${isXNext ? "Tu (X)" : "Samurai (O)"}`;
 
   return (
-    <div style={{ padding: 16, borderRadius: 8, background: 'var(--card-bg)', textAlign: 'center' }}>
-      <h4 style={{ margin: '0 0 12px 0' }}>Jogo do Galo — Tu vs Samurai</h4>
-      <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
-        <span style={{ color: 'var(--muted)', fontSize: 13 }}>Dificuldade:</span>
+    <div
+      style={{
+        padding: 16,
+        borderRadius: 8,
+        background: "var(--card-bg)",
+        textAlign: "center",
+      }}
+    >
+      <h4 style={{ margin: "0 0 12px 0" }}>Jogo do Galo — Tu vs Samurai</h4>
+      <div
+        style={{
+          marginBottom: 10,
+          display: "flex",
+          justifyContent: "center",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        <span style={{ color: "var(--muted)", fontSize: 13 }}>
+          Dificuldade:
+        </span>
         <select
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value as Difficulty)}
           disabled={!!winner || loading || !isXNext}
-          style={{ borderRadius: 8, padding: '6px 8px' }}
+          style={{ borderRadius: 8, padding: "6px 8px" }}
         >
           <option value="easy">Fácil</option>
           <option value="medium">Médio</option>
           <option value="hard">Difícil</option>
         </select>
       </div>
-      <div style={{ marginBottom: 12, color: 'var(--muted)' }}>{status}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 60px)', gap: 4, marginBottom: 12, justifyContent: 'center' }}>
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => renderSquare(i))}
+      <div style={{ marginBottom: 12, color: "var(--muted)" }}>{status}</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 60px)",
+          gap: 4,
+          marginBottom: 12,
+          justifyContent: "center",
+        }}
+      >
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => renderSquare(i))}
       </div>
       {winner && (
         <div>
           <button
             onClick={reset}
             style={{
-              padding: '8px 16px',
+              padding: "8px 16px",
               borderRadius: 8,
-              background: 'var(--accent)',
-              color: 'white',
-              border: 'none',
-              cursor: 'pointer',
+              background: "var(--accent)",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
             }}
           >
             Jogar Novamente

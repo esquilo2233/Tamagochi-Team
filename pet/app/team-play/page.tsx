@@ -847,7 +847,14 @@ function TeamPlayContent() {
                         color: "var(--muted)",
                       }}
                     >
-                      Host: {r.host} • {r.players}/2 jogadores
+                      Host: {r.host} •{" "}
+                      <span
+                        style={{
+                          color: r.players >= 2 ? "#f59e0b" : "inherit",
+                        }}
+                      >
+                        {r.players}/2 jogadores {r.players >= 2 ? "🎮" : ""}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -886,12 +893,25 @@ function TeamPlayContent() {
                         showToast("Indica o teu nome primeiro", "error");
                         return;
                       }
+                      if (r.players >= 2) {
+                        showToast(
+                          "⚠️ Sala cheia! Jogo já está em curso.",
+                          "error",
+                        );
+                        return;
+                      }
                       setInviteCode(r.id);
                       joinRoom();
                     }}
-                    style={btn("#2563eb")}
+                    disabled={r.players >= 2}
+                    style={{
+                      ...btn(r.players >= 2 ? "#6b7280" : "#2563eb"),
+                      padding: "10px 12px",
+                      cursor: r.players >= 2 ? "not-allowed" : "pointer",
+                      opacity: r.players >= 2 ? 0.6 : 1,
+                    }}
                   >
-                    Entrar
+                    {r.players >= 2 ? "🎮 Em Jogo" : "Entrar"}
                   </button>
                   {/* Botão de fechar sala - visível para dono, admin ou gestor */}
                   {(playerId && r.hostId && playerId === r.hostId) ||

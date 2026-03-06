@@ -12,6 +12,8 @@ type Tile = {
   matched: boolean;
 };
 
+type Difficulty = "easy" | "medium" | "hard";
+
 const SUITS: Tile["suit"][] = [
   "dots",
   "bamboo",
@@ -27,67 +29,34 @@ const TILE_SYMBOLS: Record<string, string[]> = {
   dragons: ["🀄", "🀅", "🀆"],
 };
 
-function generateTiles(): Tile[] {
+function generateTiles(difficulty: Difficulty): Tile[] {
   const tiles: Tile[] = [];
   let id = 0;
 
-  // Layout pirâmide clássica simplificada
-  const layouts = [
-    // Camada 0 - Base (24 tiles em 6x4)
-    { row: 0, col: 0, layer: 0 },
-    { row: 0, col: 1, layer: 0 },
-    { row: 0, col: 2, layer: 0 },
-    { row: 0, col: 3, layer: 0 },
-    { row: 1, col: 0, layer: 0 },
-    { row: 1, col: 1, layer: 0 },
-    { row: 1, col: 2, layer: 0 },
-    { row: 1, col: 3, layer: 0 },
-    { row: 2, col: 0, layer: 0 },
-    { row: 2, col: 1, layer: 0 },
-    { row: 2, col: 2, layer: 0 },
-    { row: 2, col: 3, layer: 0 },
-    { row: 3, col: 0, layer: 0 },
-    { row: 3, col: 1, layer: 0 },
-    { row: 3, col: 2, layer: 0 },
-    { row: 3, col: 3, layer: 0 },
-    { row: 4, col: 0, layer: 0 },
-    { row: 4, col: 1, layer: 0 },
-    { row: 4, col: 2, layer: 0 },
-    { row: 4, col: 3, layer: 0 },
-    { row: 5, col: 0, layer: 0 },
-    { row: 5, col: 1, layer: 0 },
-    { row: 5, col: 2, layer: 0 },
-    { row: 5, col: 3, layer: 0 },
+  // Configuração por dificuldade
+  const config = {
+    easy: { layers: 2, pairs: 18 },
+    medium: { layers: 3, pairs: 24 },
+    hard: { layers: 4, pairs: 36 },
+  };
 
-    // Camada 1 (12 tiles em 6x2)
-    { row: 0, col: 1, layer: 1 },
-    { row: 0, col: 2, layer: 1 },
-    { row: 1, col: 1, layer: 1 },
-    { row: 1, col: 2, layer: 1 },
-    { row: 2, col: 1, layer: 1 },
-    { row: 2, col: 2, layer: 1 },
-    { row: 3, col: 1, layer: 1 },
-    { row: 3, col: 2, layer: 1 },
-    { row: 4, col: 1, layer: 1 },
-    { row: 4, col: 2, layer: 1 },
-    { row: 5, col: 1, layer: 1 },
-    { row: 5, col: 2, layer: 1 },
+  const { layers, pairs } = config[difficulty];
 
-    // Camada 2 (6 tiles)
-    { row: 1, col: 1, layer: 2 },
-    { row: 1, col: 2, layer: 2 },
-    { row: 3, col: 1, layer: 2 },
-    { row: 3, col: 2, layer: 2 },
-    { row: 4, col: 1, layer: 2 },
-    { row: 4, col: 2, layer: 2 },
+  // Gerar posições baseadas na dificuldade
+  const layouts: { row: number; col: number; layer: number }[] = [];
 
-    // Camada 3 - Topo (2 tiles)
-    { row: 2, col: 1, layer: 3 },
-    { row: 3, col: 1, layer: 3 },
-  ];
+  for (let layer = 0; layer < layers; layer++) {
+    const rows = 6 - layer;
+    const cols = 4 - Math.floor(layer / 2);
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        layouts.push({ row: r, col: c, layer });
+      }
+    }
+  }
 
   // Criar pares de tiles
-  const pairsNeeded = Math.floor(layouts.length / 2);
   const tileTypes: { suit: Tile["suit"]; value: number }[] = [];
 
   SUITS.forEach((suit) => {
@@ -103,10 +72,10 @@ function generateTiles(): Tile[] {
   });
 
   // Distribuir tiles em pares
-  for (let i = 0; i < pairsNeeded; i++) {
+  for (let i = 0; i < pairs; i++) {
     const tileType = tileTypes[i % tileTypes.length];
-    const pos1 = layouts[i * 2];
-    const pos2 = layouts[i * 2 + 1];
+    const pos1 = layouts[(i * 2) % layouts.length];
+    const pos2 = layouts[(i * 2 + 1) % layouts.length];
 
     tiles.push({
       id: id++,
@@ -135,7 +104,7 @@ function generateTiles(): Tile[] {
 function isTileFree(tile: Tile, allTiles: Tile[]): boolean {
   if (tile.matched) return false;
 
-  // Verificar se há tile por cima (qualquer tile que sobreponha)
+  // Verificar se há tile por cima
   const hasTileAbove = allTiles.some(
     (t) =>
       !t.matched &&
@@ -184,6 +153,7 @@ export default function Mahjong({
   const [moves, setMoves] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300);
   const [gameStarted, setGameStarted] = useState(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
 
   useEffect(() => {
     if (gameStarted && timeLeft > 0 && !winner) {
@@ -195,11 +165,13 @@ export default function Mahjong({
   }, [gameStarted, timeLeft, winner]);
 
   function initGame() {
-    setTiles(generateTiles());
+    setTiles(generateTiles(difficulty));
     setSelectedTile(null);
     setWinner(false);
     setMoves(0);
-    setTimeLeft(300);
+    setTimeLeft(
+      difficulty === "easy" ? 600 : difficulty === "medium" ? 300 : 180,
+    );
     setGameStarted(true);
   }
 
@@ -292,158 +264,252 @@ export default function Mahjong({
 
   const remainingPairs = tiles.filter((t) => !t.matched).length / 2;
 
+  if (!gameStarted) {
+    return (
+      <div
+        style={{
+          padding: 24,
+          borderRadius: 16,
+          background: "var(--card-bg)",
+          color: "var(--foreground)",
+          textAlign: "center",
+          maxWidth: 500,
+          margin: "0 auto",
+        }}
+      >
+        <h3 style={{ margin: "0 0 16px 0", fontSize: 24 }}>
+          🀄 Mahjong Solitaire
+        </h3>
+
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ color: "var(--muted)", marginBottom: 16 }}>
+            Combina pares de tiles idênticos para limpar o tabuleiro!
+          </p>
+
+          <div style={{ marginBottom: 16 }}>
+            <label
+              style={{ display: "block", marginBottom: 8, fontWeight: 600 }}
+            >
+              Dificuldade:
+            </label>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              {(["easy", "medium", "hard"] as Difficulty[]).map((diff) => (
+                <button
+                  key={diff}
+                  onClick={() => setDifficulty(diff)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 8,
+                    border:
+                      difficulty === diff
+                        ? "2px solid var(--accent)"
+                        : "2px solid var(--card-border)",
+                    background:
+                      difficulty === diff ? "var(--accent)" : "var(--card-bg)",
+                    color: difficulty === diff ? "#fff" : "var(--foreground)",
+                    cursor: "pointer",
+                    fontWeight: difficulty === diff ? 600 : 400,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {diff === "easy"
+                    ? "🟢 Fácil"
+                    : diff === "medium"
+                      ? "🟡 Médio"
+                      : "🔴 Difícil"}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
+              {difficulty === "easy"
+                ? "⏱️ 10 minutos • 18 pares"
+                : difficulty === "medium"
+                  ? "⏱️ 5 minutos • 24 pares"
+                  : "⏱️ 3 minutos • 36 pares"}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={initGame}
+          style={{
+            padding: "14px 32px",
+            borderRadius: 12,
+            border: "none",
+            background: "var(--accent)",
+            color: "white",
+            cursor: "pointer",
+            fontWeight: 700,
+            fontSize: 16,
+            transition: "transform 0.2s ease",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.transform = "scale(1.05)")
+          }
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          🎮 Iniciar Jogo
+        </button>
+
+        <div style={{ marginTop: 20, fontSize: 12, color: "var(--muted)" }}>
+          💡 Clica num tile livre (sem tiles à esquerda OU direita e sem tiles
+          por cima)
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
-        padding: 16,
-        borderRadius: 12,
+        padding: 20,
+        borderRadius: 16,
         background: "var(--card-bg)",
         color: "var(--foreground)",
         textAlign: "center",
-        minHeight: 400,
-        position: "relative",
-        overflow: "hidden",
+        maxWidth: 600,
+        margin: "0 auto",
       }}
     >
-      <h4 style={{ margin: "0 0 12px 0" }}>🀄 Mahjong Solitaire</h4>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 16,
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            padding: "6px 12px",
+            borderRadius: 8,
+            background:
+              timeLeft < 60
+                ? "rgba(239, 68, 68, 0.2)"
+                : "rgba(59, 130, 246, 0.2)",
+            color: timeLeft < 60 ? "#ef4444" : "var(--foreground)",
+            fontWeight: 600,
+            fontSize: 13,
+          }}
+        >
+          ⏱️ {formatTime(timeLeft)}
+        </span>
+        <span
+          style={{
+            padding: "6px 12px",
+            borderRadius: 8,
+            background: "rgba(16, 185, 129, 0.2)",
+            color: "var(--foreground)",
+            fontWeight: 600,
+            fontSize: 13,
+          }}
+        >
+          🎯 {moves} jogadas
+        </span>
+        <span
+          style={{
+            padding: "6px 12px",
+            borderRadius: 8,
+            background: "rgba(245, 158, 11, 0.2)",
+            color: "var(--foreground)",
+            fontWeight: 600,
+            fontSize: 13,
+          }}
+        >
+          🀄 {remainingPairs} restantes
+        </span>
+      </div>
 
-      {!gameStarted ? (
-        <div style={{ padding: 40 }}>
-          <p style={{ marginBottom: 16, color: "var(--muted)" }}>
-            Combina pares de tiles idênticos para limpar o tabuleiro!
+      <div
+        style={{
+          position: "relative",
+          width: 380,
+          height: 280,
+          margin: "0 auto",
+        }}
+      >
+        {tiles.map((tile) => {
+          if (tile.matched) return null;
+
+          const free = isTileFree(tile, tiles);
+          const isSelected = selectedTile?.id === tile.id;
+          const pos = getTilePosition(tile);
+
+          return (
+            <div
+              key={tile.id}
+              onClick={() => handleTileClick(tile)}
+              style={{
+                position: "absolute",
+                left: pos.left,
+                top: pos.top,
+                width: 38,
+                height: 48,
+                background: free
+                  ? "linear-gradient(145deg, rgba(254, 243, 199, 0.9) 0%, rgba(253, 230, 138, 0.9) 50%, rgba(252, 211, 77, 0.9) 100%)"
+                  : "linear-gradient(145deg, rgba(156, 163, 175, 0.5) 0%, rgba(107, 114, 128, 0.5) 50%, rgba(75, 85, 99, 0.5) 100%)",
+                backdropFilter: "blur(4px)",
+                border: isSelected
+                  ? "3px solid #3b82f6"
+                  : "2px solid rgba(120, 113, 108, 0.5)",
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 26,
+                cursor: free ? "pointer" : "not-allowed",
+                opacity: free ? 1 : 0.5,
+                boxShadow: isSelected
+                  ? "0 0 20px rgba(59, 130, 246, 0.6), 2px 2px 6px rgba(0,0,0,0.3)"
+                  : "2px 2px 6px rgba(0,0,0,0.4)",
+                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                transform: isSelected ? "scale(1.12)" : "scale(1)",
+                userSelect: "none",
+                zIndex: pos.zIndex,
+              }}
+            >
+              {getTileSymbol(tile)}
+            </div>
+          );
+        })}
+      </div>
+
+      {winner && (
+        <div style={{ marginTop: 20 }}>
+          <p
+            style={{
+              fontSize: 16,
+              marginBottom: 12,
+              color: "#10b981",
+              fontWeight: 700,
+            }}
+          >
+            🎉 Parabéns! Completaste em {formatTime(300 - timeLeft)} com {moves}{" "}
+            jogadas!
           </p>
           <button
             onClick={initGame}
             style={{
               padding: "12px 24px",
-              borderRadius: 8,
+              borderRadius: 10,
               border: "none",
               background: "var(--accent)",
               color: "white",
               cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 16,
+              fontWeight: 700,
+              fontSize: 14,
             }}
           >
-            🎮 Iniciar Jogo
+            🔄 Jogar Novamente
           </button>
         </div>
-      ) : (
-        <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 20,
-              marginBottom: 12,
-              fontSize: 13,
-              flexWrap: "wrap",
-            }}
-          >
-            <span>
-              ⏱️{" "}
-              <strong style={{ color: timeLeft < 60 ? "#ef4444" : "inherit" }}>
-                {formatTime(timeLeft)}
-              </strong>
-            </span>
-            <span>
-              🎯 Jogadas: <strong>{moves}</strong>
-            </span>
-            <span>
-              🀄 Restantes: <strong>{remainingPairs}</strong>
-            </span>
-          </div>
+      )}
 
-          <div
-            style={{
-              position: "relative",
-              width: 380,
-              height: 280,
-              margin: "0 auto",
-            }}
-          >
-            {tiles.map((tile) => {
-              if (tile.matched) return null;
-
-              const free = isTileFree(tile, tiles);
-              const isSelected = selectedTile?.id === tile.id;
-              const pos = getTilePosition(tile);
-
-              return (
-                <div
-                  key={tile.id}
-                  onClick={() => handleTileClick(tile)}
-                  style={{
-                    position: "absolute",
-                    left: pos.left,
-                    top: pos.top,
-                    width: 38,
-                    height: 48,
-                    background: free
-                      ? "linear-gradient(145deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)"
-                      : "linear-gradient(145deg, #9ca3af 0%, #6b7280 50%, #4b5563 100%)",
-                    border: isSelected
-                      ? "3px solid #3b82f6"
-                      : "2px solid #78716c",
-                    borderRadius: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 26,
-                    cursor: free ? "pointer" : "not-allowed",
-                    opacity: free ? 1 : 0.5,
-                    boxShadow: isSelected
-                      ? "0 0 20px rgba(59, 130, 246, 0.6), 2px 2px 8px rgba(0,0,0,0.3)"
-                      : "2px 2px 6px rgba(0,0,0,0.4)",
-                    transition: "transform 0.15s ease, box-shadow 0.15s ease",
-                    transform: isSelected ? "scale(1.12)" : "scale(1)",
-                    userSelect: "none",
-                    zIndex: pos.zIndex,
-                  }}
-                >
-                  {getTileSymbol(tile)}
-                </div>
-              );
-            })}
-          </div>
-
-          {winner && (
-            <div style={{ marginTop: 20 }}>
-              <p
-                style={{
-                  fontSize: 16,
-                  marginBottom: 12,
-                  color: "#10b981",
-                  fontWeight: 600,
-                }}
-              >
-                🎉 Parabéns! Completaste em {formatTime(300 - timeLeft)} com{" "}
-                {moves} jogadas!
-              </p>
-              <button
-                onClick={initGame}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "var(--accent)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                }}
-              >
-                🔄 Jogar Novamente
-              </button>
-            </div>
-          )}
-
-          {!winner && (
-            <div style={{ marginTop: 10, fontSize: 11, color: "var(--muted)" }}>
-              💡 Clica num tile livre (sem tiles à esquerda OU direita e sem
-              tiles por cima)
-            </div>
-          )}
-        </>
+      {!winner && (
+        <div style={{ marginTop: 12, fontSize: 11, color: "var(--muted)" }}>
+          💡 Clica num tile livre para seleccionar
+        </div>
       )}
     </div>
   );

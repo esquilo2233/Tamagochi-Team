@@ -7,6 +7,7 @@ import ChessGame from "./ChessGame";
 import ConnectFour from "./ConnectFour";
 import Checkers from "./Checkers";
 import Mahjong from "./Mahjong";
+import GameMenuModal from "./GameMenuModal";
 import Link from "next/link";
 
 type GameType =
@@ -30,9 +31,25 @@ export default function MinigamesModal({
   onGameFinish?: () => void;
 }) {
   const [activeGame, setActiveGame] = useState<GameType>(null);
+  const [showMenu, setShowMenu] = useState(true);
 
   if (!isOpen) return null;
 
+  // Mostrar menu de selecção de jogos
+  if (showMenu || !activeGame) {
+    return (
+      <GameMenuModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSelectGame={(game) => {
+          setActiveGame(game);
+          setShowMenu(false);
+        }}
+      />
+    );
+  }
+
+  // Mostrar jogo seleccionado
   return (
     <div
       style={{
@@ -70,7 +87,22 @@ export default function MinigamesModal({
             marginBottom: 20,
           }}
         >
-          <h2 style={{ margin: 0 }}>Minijogos</h2>
+          <button
+            onClick={() => {
+              setActiveGame(null);
+              setShowMenu(true);
+            }}
+            style={{
+              background: "var(--card-border)",
+              border: "none",
+              padding: "8px 12px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            ← Voltar
+          </button>
           <button
             onClick={onClose}
             style={{
@@ -85,185 +117,53 @@ export default function MinigamesModal({
           </button>
         </div>
 
-        {!activeGame ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <button
-              onClick={() => setActiveGame("clickrush")}
-              style={{
-                padding: "16px",
-                borderRadius: 12,
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              🎯 Click Rush
-            </button>
-            <button
-              onClick={() => setActiveGame("tictactoe")}
-              style={{
-                padding: "16px",
-                borderRadius: 12,
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              ⭕ Jogo do Galo
-            </button>
-            <button
-              onClick={() => setActiveGame("chess")}
-              style={{
-                padding: "16px",
-                borderRadius: 12,
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              ♟️ Xadrez (com dificuldade)
-            </button>
-            <button
-              onClick={() => setActiveGame("connect4")}
-              style={{
-                padding: "16px",
-                borderRadius: 12,
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              🟡 4 em Linha
-            </button>
-            <button
-              onClick={() => setActiveGame("checkers")}
-              style={{
-                padding: "16px",
-                borderRadius: 12,
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              ♟️ Damas
-            </button>
-            <button
-              onClick={() => setActiveGame("mahjong")}
-              style={{
-                padding: "16px",
-                borderRadius: 12,
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              🀄 Mahjong Solitaire
-            </button>
-            <Link
-              href="/team-play"
-              target="_blank"
-              style={{ textDecoration: "none" }}
-            >
-              <button
-                style={{
-                  width: "100%",
-                  padding: "16px",
-                  borderRadius: 12,
-                  background: "#2d8cff",
-                  color: "white",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 16,
-                  fontWeight: 600,
-                }}
-              >
-                🤝 Convidar por link (Team Building)
-              </button>
-            </Link>
-          </div>
-        ) : (
-          <div>
-            <button
-              onClick={() => setActiveGame(null)}
-              style={{
-                marginBottom: 16,
-                padding: "8px 12px",
-                borderRadius: 8,
-                background: "var(--card-border)",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              ← Voltar
-            </button>
-            {activeGame === "clickrush" && (
-              <ClickRush
-                personId={personId}
-                onFinish={() => {
-                  setActiveGame(null);
-                  onGameFinish?.();
-                }}
-              />
-            )}
-            {activeGame === "tictactoe" && (
-              <TicTacToe
-                personId={personId}
-                onFinish={() => {
-                  onGameFinish?.();
-                }}
-              />
-            )}
-            {activeGame === "chess" && (
-              <ChessGame
-                personId={personId}
-                onFinish={() => {
-                  onGameFinish?.();
-                }}
-              />
-            )}
-            {activeGame === "connect4" && (
-              <ConnectFour
-                personId={personId}
-                onFinish={() => {
-                  onGameFinish?.();
-                }}
-              />
-            )}
-            {activeGame === "checkers" && (
-              <Checkers
-                personId={personId}
-                onFinish={() => {
-                  onGameFinish?.();
-                }}
-              />
-            )}
-            {activeGame === "mahjong" && (
-              <Mahjong
-                personId={personId}
-                onFinish={() => {
-                  onGameFinish?.();
-                }}
-              />
-            )}
-          </div>
+        {activeGame === "clickrush" && (
+          <ClickRush
+            personId={personId}
+            onFinish={() => {
+              onGameFinish?.();
+            }}
+          />
+        )}
+        {activeGame === "tictactoe" && (
+          <TicTacToe
+            personId={personId}
+            onFinish={() => {
+              onGameFinish?.();
+            }}
+          />
+        )}
+        {activeGame === "chess" && (
+          <ChessGame
+            personId={personId}
+            onFinish={() => {
+              onGameFinish?.();
+            }}
+          />
+        )}
+        {activeGame === "connect4" && (
+          <ConnectFour
+            personId={personId}
+            onFinish={() => {
+              onGameFinish?.();
+            }}
+          />
+        )}
+        {activeGame === "checkers" && (
+          <Checkers
+            personId={personId}
+            onFinish={() => {
+              onGameFinish?.();
+            }}
+          />
+        )}
+        {activeGame === "mahjong" && (
+          <Mahjong
+            personId={personId}
+            onFinish={() => {
+              onGameFinish?.();
+            }}
+          />
         )}
       </div>
     </div>

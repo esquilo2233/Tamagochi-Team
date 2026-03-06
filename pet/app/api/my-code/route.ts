@@ -20,7 +20,6 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       person: {
-        id: person.id,
         name: person.name,
         code: person.code,  // Só o próprio pode ver
         coins: person.coins ?? 0,

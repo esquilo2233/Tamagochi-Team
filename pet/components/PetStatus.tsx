@@ -550,6 +550,34 @@ export default function PetStatus() {
                     😴 a dormir
                   </span>
                 )}
+                {isSleeping && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/pet?action=wake", {
+                          method: "POST",
+                        });
+                        if (res.ok) {
+                          setIsSleeping(false);
+                          setMessage("🌞 Samurai acordado!");
+                          setTimeout(() => setMessage(null), 2000);
+                          await loadPet();
+                        }
+                      } catch (e) {
+                        setMessage("❌ Erro ao acordar");
+                        setTimeout(() => setMessage(null), 2000);
+                      }
+                    }}
+                    style={{
+                      ...btnStyle("#f39c12"),
+                      padding: "6px 12px",
+                      fontSize: 13,
+                      marginLeft: 8,
+                    }}
+                  >
+                    🌞 Acordar
+                  </button>
+                )}
               </div>
               <div style={{ marginTop: 4, color: "var(--foreground)" }}>
                 Felicidade: <strong>{stats.happiness}%</strong>

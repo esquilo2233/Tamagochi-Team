@@ -79,7 +79,14 @@ export async function setRoom(roomId: string, room: Room) {
   try {
     await upsertRoom(room);
     setCachedRoom(roomId, room);
+
+    // Notificar TODOS os clientes IMEDIATAMENTE
     notifyClients(roomId, room);
+
+    // Re-notificar após 100ms para garantir sincronização
+    setTimeout(() => {
+      notifyClients(roomId, room);
+    }, 100);
   } catch (error) {
     console.error("Erro ao guardar sala na DB:", error);
   }

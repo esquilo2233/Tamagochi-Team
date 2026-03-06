@@ -77,12 +77,13 @@ function getMovesForPiece(board: Board, pos: Position, piece: Piece): Move[] {
     }
   }
 
-  // Capturas (saltar sobre peça inimiga)
-  for (const dr of [-1, 1]) {
+  // Capturas para peças NORMAIS (apenas para frente)
+  if (!king) {
+    const captureDir = color === "red" ? -1 : 1; // red captura para cima, black para baixo
     for (const dc of [-1, 1]) {
-      const mr = pos.r + dr; // casa da peça inimiga
+      const mr = pos.r + captureDir; // casa da peça inimiga
       const mc = pos.c + dc;
-      const jr = pos.r + dr * 2; // casa de aterragem
+      const jr = pos.r + captureDir * 2; // casa de aterragem
       const jc = pos.c + dc * 2;
 
       if (isValidPos(jr, jc) && isValidPos(mr, mc)) {
@@ -102,9 +103,48 @@ function getMovesForPiece(board: Board, pos: Position, piece: Piece): Move[] {
     }
   }
 
-  // Reis podem capturar em qualquer direcção (incluindo para trás)
+  // Capturas para REIS (qualquer direção, múltiplas casas)
   if (king) {
-    // Já coberto acima pois directions inclui ambos
+    for (const dr of [-1, 1]) {
+      for (const dc of [-1, 1]) {
+        // Procurar peça inimiga nesta diagonal
+        let enemyPos: Position | null = null;
+        let distance = 1;
+
+        while (true) {
+          const checkR = pos.r + dr * distance;
+          const checkC = pos.c + dc * distance;
+
+          if (!isValidPos(checkR, checkC)) break;
+
+          const checkPiece = board[checkR][checkC];
+
+          if (!checkPiece) {
+            // Casa vazia - se já encontramos inimigo, podemos capturar
+            if (enemyPos) {
+              moves.push({
+                from: pos,
+                to: { r: checkR, c: checkC },
+                capture: enemyPos,
+              });
+            }
+          } else if (getPieceColor(checkPiece) !== color) {
+            // Inimigo encontrado - guardar posição se for o primeiro
+            if (!enemyPos) {
+              enemyPos = { r: checkR, c: checkC };
+            } else {
+              // Segundo inimigo - parar
+              break;
+            }
+          } else {
+            // Peça amiga - parar
+            break;
+          }
+
+          distance++;
+        }
+      }
+    }
   }
 
   return moves;
@@ -127,9 +167,17 @@ function makeMove(board: Board, move: Move): Board {
   if (piece === "black" && move.to.r === BOARD_SIZE - 1)
     newBoard[move.to.r][move.to.c] = "black-king";
 
-  // Remover peça capturada
+  // Remover peça(s) capturada(s)
   if (move.capture) {
-    newBoard[move.capture.r][move.capture.c] = null;
+    if (typeof move.capture === "object") {
+      // Captura de rainha (posição)
+      newBoard[move.capture.r][move.capture.c] = null;
+    } else {
+      // Captura normal (boolean ou undefined)
+      const mr = move.from.r + (move.to.r - move.from.r) / 2;
+      const mc = move.from.c + (move.to.c - move.from.c) / 2;
+      newBoard[Math.floor(mr)][Math.floor(mc)] = null;
+    }
   }
 
   return newBoard;

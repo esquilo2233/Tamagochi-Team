@@ -613,7 +613,7 @@ export async function applyItemEffect(
 
 export async function performAction(
   petId: number,
-  action: "feed" | "clean" | "play" | "sleep",
+  action: "feed" | "clean" | "play" | "sleep" | "wake",
 ) {
   const pet = await prisma.pet.findUnique({ where: { id: petId } });
   if (!pet) return null;
@@ -629,6 +629,11 @@ export async function performAction(
       return prisma.pet.update({
         where: { id: petId },
         data: { sleepStartedAt: new Date(), lastUpdate: new Date() },
+      });
+    case "wake":
+      return prisma.pet.update({
+        where: { id: petId },
+        data: { sleepStartedAt: null, lastUpdate: new Date() },
       });
     default:
       return pet;

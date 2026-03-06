@@ -144,11 +144,17 @@ export default function PetStatus() {
         setCurrentPersonCoins(sessionJson.person.coins ?? 0);
         setCompanionCode(sessionJson.person.code ?? "");
       }
-      // Carregar lista de pessoas
-      const peopleRes = await fetch("/api/people");
-      const peopleJson = await peopleRes.json();
+      // Carregar dados da pessoa autenticada (apenas nome e moedas)
+      const meRes = await fetch("/api/me");
+      const meJson = await meRes.json();
       if (!mounted) return;
-      setPeopleList(Array.isArray(peopleJson) ? peopleJson : []);
+
+      if (meJson?.ok && meJson?.person) {
+        setPeopleList([meJson.person]);
+      } else {
+        setPeopleList([]);
+      }
+
       // Sem sessão: não atribuir pessoa (moedas não vão para ninguém)
       if (!sessionFound) setHasSession(false);
     }
@@ -157,14 +163,13 @@ export default function PetStatus() {
 
   useEffect(() => {
     if (currentPersonId == null) return;
-    // fetch person details to update coins
-    fetch(`/api/people`)
+    // Buscar dados actualizados da pessoa (apenas nome e moedas)
+    fetch(`/api/me`)
       .then((r) => r.json())
       .then((j) => {
-        const p = Array.isArray(j)
-          ? j.find((x: any) => x.id === currentPersonId)
-          : null;
-        if (p) setCurrentPersonCoins(p.coins ?? 0);
+        if (j?.ok && j?.person) {
+          setCurrentPersonCoins(j.person.coins ?? 0);
+        }
       })
       .catch(() => {});
   }, [currentPersonId]);
@@ -899,11 +904,10 @@ export default function PetStatus() {
         onGameFinish={async () => {
           await loadPet();
           if (currentPersonId) {
-            const p = await fetch("/api/people").then((r) => r.json());
-            const found = Array.isArray(p)
-              ? p.find((x: any) => x.id === currentPersonId)
-              : null;
-            if (found) setCurrentPersonCoins(found.coins ?? 0);
+            const meRes = await fetch("/api/me").then((r) => r.json());
+            if (meRes?.ok && meRes?.person) {
+              setCurrentPersonCoins(meRes.person.coins ?? 0);
+            }
           }
         }}
       />

@@ -723,6 +723,19 @@ export async function stopCompanionSession(sessionId: number) {
     (now.getTime() - started.getTime()) / 1000,
   );
 
+  // Calcular moedas a receber apenas no final
+  const rewardsConfig = await getRewardsConfig();
+  const tickInterval = rewardsConfig.companionTickMinutes;
+  const coinsPerTick = rewardsConfig.companionCoinsPerTick;
+  const totalSessionMinutes = Math.floor(totalSessionSeconds / 60);
+  const ticks = Math.floor(totalSessionMinutes / tickInterval);
+  const totalCoins = ticks * coinsPerTick;
+
+  // Adicionar moedas apenas quando termina
+  if (totalCoins > 0) {
+    await awardCoinsToPerson(session.personId, totalCoins);
+  }
+
   // Atualizar tempo total da pessoa
   if (totalSessionSeconds > 0) {
     await prisma.person.update({
@@ -737,13 +750,15 @@ export async function stopCompanionSession(sessionId: number) {
 
   return prisma.companionSession.update({
     where: { id: sessionId },
-    data: { active: false },
+    data: {
+      active: false,
+      coinsEarned: totalCoins,
+    },
   });
 }
 
 export async function processCompanionSessions() {
   const now = new Date();
-  const rewardsConfig = await getRewardsConfig();
   const sessions = await prisma.companionSession.findMany({
     where: { active: true },
     include: { person: true },
@@ -757,27 +772,20 @@ export async function processCompanionSessions() {
     const minutesPassed = Math.floor(
       (now.getTime() - last.getTime()) / (1000 * 60),
     );
-    const tickInterval = rewardsConfig.companionTickMinutes;
-    const ticks = Math.floor(minutesPassed / tickInterval);
-    if (ticks <= 0) continue;
 
-    const coinsPerTick = rewardsConfig.companionCoinsPerTick;
-    const totalCoins = ticks * coinsPerTick;
+    // Apenas aplicar efeitos no pet, NÃO adicionar moedas
+    // Moedas apenas são adicionadas quando termina a sessão
+    const happinessDecayPerMinute = 0.3;
+    const hungerDecayPerMinute = 0.4;
+    const energyDecayPerMinute = 0.35;
+    const hygieneDecayPerMinute = 0.25;
 
-    // Enquanto faz companhia:
-    // - Felicidade sobe
-    // - Fome/Energia/Higiene descem lentamente
-    const happinessGainPerTick = 1;
-    const hungerDecayPerTick = 0.4;
-    const energyDecayPerTick = 0.35;
-    const hygieneDecayPerTick = 0.25;
+    const totalHappinessDecay = minutesPassed * happinessDecayPerMinute;
+    const totalHungerDecay = minutesPassed * hungerDecayPerMinute;
+    const totalEnergyDecay = minutesPassed * energyDecayPerMinute;
+    const totalHygieneDecay = minutesPassed * hygieneDecayPerMinute;
 
-    const totalHappinessGain = ticks * happinessGainPerTick;
-    const totalHungerDecay = ticks * hungerDecayPerTick;
-    const totalEnergyDecay = ticks * energyDecayPerTick;
-    const totalHygieneDecay = ticks * hygieneDecayPerTick;
-
-    const nextHappiness = clamp((pet.happiness ?? 100) + totalHappinessGain);
+    const nextHappiness = clamp((pet.happiness ?? 100) - totalHappinessDecay);
     const nextHunger = clamp((pet.hunger ?? 100) - totalHungerDecay);
     const nextEnergy = clamp((pet.energy ?? 100) - totalEnergyDecay);
     const nextHygiene = clamp((pet.hygiene ?? 100) - totalHygieneDecay);
@@ -798,18 +806,12 @@ export async function processCompanionSessions() {
     pet.energy = nextEnergy;
     pet.hygiene = nextHygiene;
 
-    if (totalCoins > 0) {
-      await awardCoinsToPerson(s.personId, totalCoins);
-
-      // Atualizar sessão
-      const advanced = new Date(
-        last.getTime() + ticks * tickInterval * 60 * 1000,
-      );
+    // Atualizar lastTickAt para não aplicar efeitos em duplicado
+    if (minutesPassed > 0) {
       await prisma.companionSession.update({
         where: { id: s.id },
         data: {
-          lastTickAt: advanced,
-          coinsEarned: s.coinsEarned + totalCoins,
+          lastTickAt: now,
         },
       });
     }

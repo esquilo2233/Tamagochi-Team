@@ -16,8 +16,18 @@ type Move = {
 };
 
 const PIECE_ICON: Record<Piece, string> = {
-  wp: "♙", wr: "♖", wn: "♘", wb: "♗", wq: "♕", wk: "♔",
-  bp: "♟", br: "♜", bn: "♞", bb: "♝", bq: "♛", bk: "♚",
+  wp: "♙",
+  wr: "♖",
+  wn: "♘",
+  wb: "♗",
+  wq: "♕",
+  wk: "♔",
+  bp: "♟",
+  br: "♜",
+  bn: "♞",
+  bb: "♝",
+  bq: "♛",
+  bk: "♚",
 };
 
 const PIECE_VALUE: Record<PieceType, number> = {
@@ -94,7 +104,12 @@ function hasKing(board: Board, color: Color) {
   return board.some((row) => row.some((p) => p === target));
 }
 
-function isSquareAttacked(board: Board, r: number, c: number, by: Color): boolean {
+function isSquareAttacked(
+  board: Board,
+  r: number,
+  c: number,
+  by: Color,
+): boolean {
   // pawns
   const pawnDir = by === "w" ? -1 : 1;
   for (const dc of [-1, 1]) {
@@ -107,8 +122,14 @@ function isSquareAttacked(board: Board, r: number, c: number, by: Color): boolea
 
   // knights
   const knightJumps = [
-    [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-    [1, -2], [1, 2], [2, -1], [2, 1],
+    [-2, -1],
+    [-2, 1],
+    [-1, -2],
+    [-1, 2],
+    [1, -2],
+    [1, 2],
+    [2, -1],
+    [2, 1],
   ];
   for (const [dr, dc] of knightJumps) {
     const nr = r + dr;
@@ -129,7 +150,12 @@ function isSquareAttacked(board: Board, r: number, c: number, by: Color): boolea
   }
 
   // bishop/queen diagonals
-  const diagonalDirs = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+  const diagonalDirs = [
+    [-1, -1],
+    [-1, 1],
+    [1, -1],
+    [1, 1],
+  ];
   for (const [dr, dc] of diagonalDirs) {
     let nr = r + dr;
     let nc = c + dc;
@@ -145,7 +171,12 @@ function isSquareAttacked(board: Board, r: number, c: number, by: Color): boolea
   }
 
   // rook/queen lines
-  const lineDirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  const lineDirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ];
   for (const [dr, dc] of lineDirs) {
     let nr = r + dr;
     let nc = c + dc;
@@ -180,7 +211,8 @@ function pseudoMoves(board: Board, color: Color): Move[] {
       const t = board[r][c];
       if (!t) out.push({ fromR, fromC, toR: r, toC: c });
       else {
-        if (pieceColor(t) !== color && t[1] !== "k") out.push({ fromR, fromC, toR: r, toC: c });
+        if (pieceColor(t) !== color && t[1] !== "k")
+          out.push({ fromR, fromC, toR: r, toC: c });
         break;
       }
       r += dr;
@@ -199,10 +231,16 @@ function pseudoMoves(board: Board, color: Color): Move[] {
         const startRow = color === "w" ? 6 : 1;
 
         const fr = r + dir;
-        if (inside(fr, c) && !board[fr][c]) out.push({ fromR: r, fromC: c, toR: fr, toC: c });
+        if (inside(fr, c) && !board[fr][c])
+          out.push({ fromR: r, fromC: c, toR: fr, toC: c });
 
         const fr2 = r + 2 * dir;
-        if (r === startRow && inside(fr2, c) && !board[fr][c] && !board[fr2][c]) {
+        if (
+          r === startRow &&
+          inside(fr2, c) &&
+          !board[fr][c] &&
+          !board[fr2][c]
+        ) {
           out.push({ fromR: r, fromC: c, toR: fr2, toC: c });
         }
 
@@ -211,21 +249,29 @@ function pseudoMoves(board: Board, color: Color): Move[] {
           const cc = c + dc;
           if (!inside(cr, cc)) continue;
           const t = board[cr][cc];
-          if (t && pieceColor(t) !== color && t[1] !== "k") out.push({ fromR: r, fromC: c, toR: cr, toC: cc });
+          if (t && pieceColor(t) !== color && t[1] !== "k")
+            out.push({ fromR: r, fromC: c, toR: cr, toC: cc });
         }
       }
 
       if (type === "n") {
         const jumps = [
-          [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-          [1, -2], [1, 2], [2, -1], [2, 1],
+          [-2, -1],
+          [-2, 1],
+          [-1, -2],
+          [-1, 2],
+          [1, -2],
+          [1, 2],
+          [2, -1],
+          [2, 1],
         ];
         for (const [dr, dc] of jumps) {
           const nr = r + dr;
           const nc = c + dc;
           if (!inside(nr, nc)) continue;
           const t = board[nr][nc];
-          if (!t || (pieceColor(t) !== color && t[1] !== "k")) out.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+          if (!t || (pieceColor(t) !== color && t[1] !== "k"))
+            out.push({ fromR: r, fromC: c, toR: nr, toC: nc });
         }
       }
 
@@ -250,7 +296,8 @@ function pseudoMoves(board: Board, color: Color): Move[] {
             const nc = c + dc;
             if (!inside(nr, nc)) continue;
             const t = board[nr][nc];
-            if (!t || (pieceColor(t) !== color && t[1] !== "k")) out.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+            if (!t || (pieceColor(t) !== color && t[1] !== "k"))
+              out.push({ fromR: r, fromC: c, toR: nr, toC: nc });
           }
         }
       }
@@ -290,15 +337,26 @@ function moveQuality(board: Board, m: Move, cpuColor: Color) {
   return capture * 10 + scoreFromCpuPerspective;
 }
 
-export default function ChessGame({ personId, onFinish }: { personId?: number; onFinish?: (score: number, coinsAwarded?: number) => void }) {
+export default function ChessGame({
+  personId,
+  onFinish,
+}: {
+  personId?: number;
+  onFinish?: (score: number, coinsAwarded?: number) => void;
+}) {
   const [board, setBoard] = useState<Board>(initialBoard());
   const [turn, setTurn] = useState<Color>("w");
-  const [selected, setSelected] = useState<{ r: number; c: number } | null>(null);
+  const [selected, setSelected] = useState<{ r: number; c: number } | null>(
+    null,
+  );
   const [winner, setWinner] = useState<"w" | "b" | "draw" | null>(null);
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
+    "medium",
+  );
   const [mode, setMode] = useState<"cpu" | "local">("cpu");
   const [loading, setLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [samuraiMovePending, setSamuraiMovePending] = useState(false);
 
   React.useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -312,7 +370,9 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
 
   const selectedMoves = useMemo(() => {
     if (!selected) return [] as Move[];
-    return moves.filter((m) => m.fromR === selected.r && m.fromC === selected.c);
+    return moves.filter(
+      (m) => m.fromR === selected.r && m.fromC === selected.c,
+    );
   }, [selected, moves]);
 
   async function finishGame(result: "w" | "b" | "draw") {
@@ -357,7 +417,7 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
   }
 
   function playMove(m: Move) {
-    if (winner) return;
+    if (winner || (turn === "w" && samuraiMovePending)) return;
     const next = applyMove(board, m);
     const nextTurn: Color = turn === "w" ? "b" : "w";
     const result = maybeEnd(next, nextTurn);
@@ -372,6 +432,9 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
     }
 
     setTurn(nextTurn);
+    if (nextTurn === "b" && mode === "cpu") {
+      setSamuraiMovePending(true);
+    }
   }
 
   function chooseCpuMove(nextBoard: Board, cpuColor: Color): Move | null {
@@ -411,7 +474,7 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
       sideToMove: Color,
       depth: number,
       alpha: number,
-      beta: number
+      beta: number,
     ): number => {
       const result = gameResult(b, sideToMove);
       if (result) {
@@ -431,7 +494,13 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
         let bestVal = -Infinity;
         for (const m of movesForSide) {
           const nb = applyMove(b, m);
-          const val = minimax(nb, sideToMove === "w" ? "b" : "w", depth - 1, alpha, beta);
+          const val = minimax(
+            nb,
+            sideToMove === "w" ? "b" : "w",
+            depth - 1,
+            alpha,
+            beta,
+          );
           bestVal = Math.max(bestVal, val);
           alpha = Math.max(alpha, bestVal);
           if (beta <= alpha) break;
@@ -442,7 +511,13 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
       let bestVal = Infinity;
       for (const m of movesForSide) {
         const nb = applyMove(b, m);
-        const val = minimax(nb, sideToMove === "w" ? "b" : "w", depth - 1, alpha, beta);
+        const val = minimax(
+          nb,
+          sideToMove === "w" ? "b" : "w",
+          depth - 1,
+          alpha,
+          beta,
+        );
         bestVal = Math.min(bestVal, val);
         beta = Math.min(beta, bestVal);
         if (beta <= alpha) break;
@@ -464,7 +539,7 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
   }
 
   React.useEffect(() => {
-    if (mode !== "cpu" || winner || turn !== "b") return;
+    if (mode !== "cpu" || winner || turn !== "b" || !samuraiMovePending) return;
     const timer = setTimeout(() => {
       const cpuMove = chooseCpuMove(board, "b");
       if (!cpuMove) {
@@ -473,9 +548,10 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
         return;
       }
       playMove(cpuMove);
+      setSamuraiMovePending(false);
     }, 350);
     return () => clearTimeout(timer);
-  }, [turn, board, winner, difficulty, mode]);
+  }, [turn, board, winner, difficulty, mode, samuraiMovePending]);
 
   function onCellClick(r: number, c: number) {
     if (winner) return;
@@ -502,13 +578,28 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
     setTurn("w");
     setSelected(null);
     setWinner(null);
+    setSamuraiMovePending(false);
   }
 
   return (
-    <div style={{ padding: 12, borderRadius: 8, background: "var(--card-bg)", color: "var(--foreground)" }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 8,
+        background: "var(--card-bg)",
+        color: "var(--foreground)",
+      }}
+    >
       <h4 style={{ margin: "0 0 8px 0" }}>♟️ Xadrez vs Samurai</h4>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
         <label style={{ fontSize: 13, color: "var(--muted)" }}>Modo:</label>
         <select
           value={mode}
@@ -532,10 +623,14 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
           <option value="local">2 jogadores (local)</option>
         </select>
 
-        <label style={{ fontSize: 13, color: "var(--muted)" }}>Dificuldade:</label>
+        <label style={{ fontSize: 13, color: "var(--muted)" }}>
+          Dificuldade:
+        </label>
         <select
           value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value as "easy" | "medium" | "hard")}
+          onChange={(e) =>
+            setDifficulty(e.target.value as "easy" | "medium" | "hard")
+          }
           disabled={mode !== "cpu" || turn !== "w" || loading || !!winner}
           style={{
             background: "var(--background)",
@@ -556,19 +651,38 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
           ? winner === "draw"
             ? "Empate."
             : winner === "w"
-              ? mode === "cpu" ? "Ganhaste ao Samurai!" : "Brancas venceram!"
-              : mode === "cpu" ? "Samurai venceu." : "Pretas venceram!"
+              ? mode === "cpu"
+                ? "Ganhaste ao Samurai!"
+                : "Brancas venceram!"
+              : mode === "cpu"
+                ? "Samurai venceu."
+                : "Pretas venceram!"
           : turn === "w"
-            ? mode === "cpu" ? "A tua vez (brancas)." : "Vez das brancas."
-            : mode === "cpu" ? "Vez do Samurai..." : "Vez das pretas."}
+            ? mode === "cpu"
+              ? "A tua vez (brancas)."
+              : "Vez das brancas."
+            : mode === "cpu"
+              ? "Vez do Samurai..."
+              : "Vez das pretas."}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 40px)", gap: 0, border: "2px solid var(--card-border)", width: "fit-content", margin: "0 auto" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(8, 40px)",
+          gap: 0,
+          border: "2px solid var(--card-border)",
+          width: "fit-content",
+          margin: "0 auto",
+        }}
+      >
         {board.map((row, r) =>
           row.map((p, c) => {
             const dark = (r + c) % 2 === 1;
             const isSelected = selected?.r === r && selected?.c === c;
-            const isTarget = selectedMoves.some((m) => m.toR === r && m.toC === c);
+            const isTarget = selectedMoves.some(
+              (m) => m.toR === r && m.toC === c,
+            );
             return (
               <button
                 key={`${r}-${c}`}
@@ -642,12 +756,29 @@ export default function ChessGame({ personId, onFinish }: { personId?: number; o
                 {p ? PIECE_ICON[p] : ""}
               </button>
             );
-          })
+          }),
         )}
       </div>
 
-      <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 8 }}>
-        <button onClick={reset} style={{ padding: "6px 10px", borderRadius: 8, border: "none", background: "var(--accent)", color: "white", cursor: "pointer" }}>
+      <div
+        style={{
+          marginTop: 10,
+          display: "flex",
+          justifyContent: "center",
+          gap: 8,
+        }}
+      >
+        <button
+          onClick={reset}
+          style={{
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "none",
+            background: "var(--accent)",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
           Novo jogo
         </button>
       </div>

@@ -36,7 +36,13 @@ function checkWinner(board: Cell[][]): Winner {
         for (let i = 1; i < 4; i++) {
           const nr = r + dr * i;
           const nc = c + dc * i;
-          if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || board[nr][nc] !== cell) {
+          if (
+            nr < 0 ||
+            nr >= ROWS ||
+            nc < 0 ||
+            nc >= COLS ||
+            board[nr][nc] !== cell
+          ) {
             ok = false;
             break;
           }
@@ -51,7 +57,9 @@ function checkWinner(board: Cell[][]): Winner {
 }
 
 function aiMove(board: Cell[][]): number {
-  const legalCols = Array.from({ length: COLS }, (_, c) => c).filter((c) => getDropRow(board, c) !== -1);
+  const legalCols = Array.from({ length: COLS }, (_, c) => c).filter(
+    (c) => getDropRow(board, c) !== -1,
+  );
   if (!legalCols.length) return -1;
 
   // ganhar já
@@ -75,11 +83,18 @@ function aiMove(board: Cell[][]): number {
   return pref.find((c) => legalCols.includes(c)) ?? legalCols[0];
 }
 
-export default function ConnectFour({ personId, onFinish }: { personId?: number; onFinish?: (winner: "player" | "samurai" | "draw", score: number) => void }) {
+export default function ConnectFour({
+  personId,
+  onFinish,
+}: {
+  personId?: number;
+  onFinish?: (winner: "player" | "samurai" | "draw", score: number) => void;
+}) {
   const [board, setBoard] = useState<Cell[][]>(emptyBoard());
   const [turn, setTurn] = useState<"R" | "Y">("R");
   const [winner, setWinner] = useState<Winner>(null);
   const [loading, setLoading] = useState(false);
+  const [samuraiMovePending, setSamuraiMovePending] = useState(false);
 
   const status = useMemo(() => {
     if (winner === "draw") return "Empate!";
@@ -89,28 +104,49 @@ export default function ConnectFour({ personId, onFinish }: { personId?: number;
   }, [winner, turn]);
 
   function play(col: number, piece: "R" | "Y") {
-    if (winner) return;
+    if (winner || (piece === "R" && samuraiMovePending)) return;
     const row = getDropRow(board, col);
     if (row === -1) return;
     const next = board.map((r) => [...r]);
     next[row][col] = piece;
     const w = checkWinner(next);
     setBoard(next);
+
     if (w) {
       setWinner(w);
     } else {
       setTurn(piece === "R" ? "Y" : "R");
+      if (piece === "R") {
+        setSamuraiMovePending(true);
+      }
     }
   }
 
   useEffect(() => {
-    if (winner || turn !== "Y") return;
+    if (winner || turn !== "Y" || !samuraiMovePending) return;
+    const c = aiMove(board);
+    if (c < 0) return;
+
     const t = setTimeout(() => {
-      const c = aiMove(board);
-      if (c >= 0) play(c, "Y");
+      const row = getDropRow(board, c);
+      if (row === -1) return;
+
+      const next = board.map((r) => [...r]);
+      next[row][c] = "Y";
+      const w = checkWinner(next);
+      setBoard(next);
+
+      if (w) {
+        setWinner(w);
+      } else {
+        setTurn("R");
+      }
+
+      setSamuraiMovePending(false);
     }, 350);
+
     return () => clearTimeout(t);
-  }, [turn, board, winner]);
+  }, [turn, board, winner, samuraiMovePending]);
 
   async function finishGame() {
     if (!winner) return;
@@ -144,20 +180,45 @@ export default function ConnectFour({ personId, onFinish }: { personId?: number;
     setBoard(emptyBoard());
     setTurn("R");
     setWinner(null);
+    setSamuraiMovePending(false);
   }
 
   return (
-    <div style={{ padding: 12, borderRadius: 8, background: "var(--card-bg)", color: "var(--foreground)" }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 8,
+        background: "var(--card-bg)",
+        color: "var(--foreground)",
+      }}
+    >
       <h4 style={{ marginTop: 0 }}>🟡 4 em Linha — Tu vs Samurai</h4>
       <div style={{ marginBottom: 8, color: "var(--muted)" }}>{status}</div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 48px)", gap: 6, width: "fit-content", margin: "0 auto" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 48px)",
+          gap: 6,
+          width: "fit-content",
+          margin: "0 auto",
+        }}
+      >
         {Array.from({ length: COLS }).map((_, c) => (
           <button
             key={`top-${c}`}
             onClick={() => play(c, "R")}
-            disabled={turn !== "R" || !!winner || getDropRow(board, c) === -1 || loading}
-            style={{ height: 30, borderRadius: 8, border: "none", background: "var(--accent)", color: "white", cursor: "pointer" }}
+            disabled={
+              turn !== "R" || !!winner || getDropRow(board, c) === -1 || loading
+            }
+            style={{
+              height: 30,
+              borderRadius: 8,
+              border: "none",
+              background: "var(--accent)",
+              color: "white",
+              cursor: "pointer",
+            }}
           >
             ↓
           </button>
@@ -171,17 +232,32 @@ export default function ConnectFour({ personId, onFinish }: { personId?: number;
                 width: 48,
                 height: 48,
                 borderRadius: "50%",
-                background: cell === "R" ? "#ef4444" : cell === "Y" ? "#facc15" : "#1f2937",
+                background:
+                  cell === "R"
+                    ? "#ef4444"
+                    : cell === "Y"
+                      ? "#facc15"
+                      : "#1f2937",
                 border: "3px solid rgba(255,255,255,0.25)",
               }}
             />
-          ))
+          )),
         )}
       </div>
 
       {winner && (
         <div style={{ marginTop: 10, textAlign: "center" }}>
-          <button onClick={reset} style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: "var(--accent)", color: "white", cursor: "pointer" }}>
+          <button
+            onClick={reset}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "none",
+              background: "var(--accent)",
+              color: "white",
+              cursor: "pointer",
+            }}
+          >
             Novo jogo
           </button>
         </div>

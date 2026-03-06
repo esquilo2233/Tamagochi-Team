@@ -5,9 +5,18 @@ import ClickRush from "./ClickRush";
 import TicTacToe from "./TicTacToe";
 import ChessGame from "./ChessGame";
 import ConnectFour from "./ConnectFour";
+import Checkers from "./Checkers";
+import Mahjong from "./Mahjong";
 import Link from "next/link";
 
-type GameType = "clickrush" | "tictactoe" | "chess" | "connect4" | null;
+type GameType =
+  | "clickrush"
+  | "tictactoe"
+  | "chess"
+  | "connect4"
+  | "checkers"
+  | "mahjong"
+  | null;
 
 export default function MinigamesModal({
   isOpen,
@@ -53,7 +62,14 @@ export default function MinigamesModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
           <h2 style={{ margin: 0 }}>Minijogos</h2>
           <button
             onClick={onClose}
@@ -131,7 +147,41 @@ export default function MinigamesModal({
             >
               🟡 4 em Linha
             </button>
-            <Link href="/team-play" target="_blank" style={{ textDecoration: "none" }}>
+            <button
+              onClick={() => setActiveGame("checkers")}
+              style={{
+                padding: "16px",
+                borderRadius: 12,
+                background: "var(--accent)",
+                color: "white",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 16,
+                fontWeight: 600,
+              }}
+            >
+              ♟️ Damas
+            </button>
+            <button
+              onClick={() => setActiveGame("mahjong")}
+              style={{
+                padding: "16px",
+                borderRadius: 12,
+                background: "var(--accent)",
+                color: "white",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 16,
+                fontWeight: 600,
+              }}
+            >
+              🀄 Mahjong Solitaire
+            </button>
+            <Link
+              href="/team-play"
+              target="_blank"
+              style={{ textDecoration: "none" }}
+            >
               <button
                 style={{
                   width: "100%",
@@ -191,6 +241,22 @@ export default function MinigamesModal({
             )}
             {activeGame === "connect4" && (
               <ConnectFour
+                personId={personId}
+                onFinish={() => {
+                  onGameFinish?.();
+                }}
+              />
+            )}
+            {activeGame === "checkers" && (
+              <Checkers
+                personId={personId}
+                onFinish={() => {
+                  onGameFinish?.();
+                }}
+              />
+            )}
+            {activeGame === "mahjong" && (
+              <Mahjong
                 personId={personId}
                 onFinish={() => {
                   onGameFinish?.();

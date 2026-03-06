@@ -1,27 +1,33 @@
-import React from "react";
-import { cookies } from "next/headers";
-import { prisma } from "../../lib/prisma";
+"use client";
+
 import Link from "next/link";
 import PeopleManager from "../../components/PeopleManager";
+import { useAdminAccess } from "@/lib/useAdminAccess";
 
-export default async function Page() {
-  const cookieStore = await cookies();
-  const code = cookieStore.get("person_session")?.value;
-  let allowed = false;
-  let hasSession = false;
-  let personRole = null;
+export default function PeoplePage() {
+  const { hasAccess, checkingAccess } = useAdminAccess();
 
-  if (code) {
-    hasSession = true;
-    const person = await prisma.person.findUnique({ where: { code } });
-    if (person) {
-      personRole = person.role;
-      const role = (person.role ?? "").trim().toLowerCase();
-      allowed = role === "admin" || role === "gestor";
-    }
+  // Mostrar loading enquanto verifica permissões
+  if (checkingAccess) {
+    return (
+      <main style={{ maxWidth: 760, margin: "24px auto", padding: 16 }}>
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 8,
+            background: "var(--card-bg)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
+          <div>A verificar permissões...</div>
+        </div>
+      </main>
+    );
   }
 
-  if (!allowed) {
+  // Negar acesso se não for admin/gestor
+  if (!hasAccess) {
     return (
       <main style={{ maxWidth: 760, margin: "24px auto", padding: 16 }}>
         <div style={{ marginBottom: 16 }}>
@@ -46,18 +52,11 @@ export default async function Page() {
             Sem permissão para aceder à página de pessoas. Apenas{" "}
             <strong>admin</strong> e <strong>gestor</strong>.
           </p>
-          {!hasSession && (
-            <p style={{ margin: "8px 0", fontSize: 14 }}>
-              💡 Dica: Precisas de fazer login primeiro na página principal.
-            </p>
-          )}
-          {hasSession && personRole && (
-            <p style={{ margin: "8px 0", fontSize: 14 }}>
-              A tua role atual: <strong>{personRole}</strong>
-            </p>
-          )}
+          <p style={{ margin: "8px 0", fontSize: 14 }}>
+            💡 Dica: Precisas de fazer login primeiro na página principal.
+          </p>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link
             href="/"
             style={{

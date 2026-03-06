@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
+import { useAdminAccess } from "@/lib/useAdminAccess";
 
 type Effect = {
   hunger?: number;
@@ -24,28 +25,16 @@ const EMPTY_FORM = {
 };
 
 export default function ItemsPage() {
+  const { hasAccess, checkingAccess } = useAdminAccess();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-
-  // Verificar permissões
-  useEffect(() => {
-    fetch("/api/session")
-      .then((r) => r.json())
-      .then((data) => {
-        const person = data.person;
-        const role = (person?.role ?? "").trim().toLowerCase();
-        setHasAccess(role === "admin" || role === "gestor");
-      })
-      .catch(() => setHasAccess(false));
-  }, []);
 
   const isEditing = useMemo(() => form.id !== null, [form.id]);
 
   // Mostrar loading enquanto verifica permissões
-  if (hasAccess === null) {
+  if (checkingAccess) {
     return (
       <main style={{ maxWidth: 760, margin: "24px auto", padding: 16 }}>
         <div

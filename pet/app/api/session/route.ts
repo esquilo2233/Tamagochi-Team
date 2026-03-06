@@ -49,6 +49,7 @@ export async function POST(req: Request) {
     const sessionData = {
       code: person.code,
       id: person.id,
+      role: person.role ?? "user",
       ts: Date.now(),
     };
     const encryptedSession = encrypt(JSON.stringify(sessionData));
@@ -66,7 +67,6 @@ export async function POST(req: Request) {
       person: {
         id: person.id,
         name: person.name,
-        code: person.code,
         role: person.role ?? null,
         coins: person.coins ?? 0,
       },
@@ -90,11 +90,12 @@ export async function GET() {
     }
 
     // Desencriptar sessão
-    let sessionData: { code: string; id: number; ts: number };
+    let sessionData: { code: string; id: number; ts: number; role?: string };
     try {
       const decrypted = decrypt(encryptedSession);
       sessionData = JSON.parse(decrypted);
-    } catch {
+    } catch (e) {
+      console.error("[Session] Erro ao desencriptar:", e);
       cookieStore.delete(SESSION_COOKIE);
       return NextResponse.json({ ok: false, person: null });
     }
@@ -116,7 +117,6 @@ export async function GET() {
       person: {
         id: person.id,
         name: person.name,
-        code: person.code,
         role: person.role ?? null,
         coins: person.coins ?? 0,
       },

@@ -12,6 +12,8 @@ const MAX_SCORES: Record<string, number> = {
   tictactoe: 1,
   chess: 1,
   connect4: 1,
+  checkers: 1,
+  mahjong: 1,
 };
 
 // Validar score
@@ -23,10 +25,15 @@ function isValidScore(game: string, score: number, outcome?: string): boolean {
   }
 
   // Para jogos de outcome, validar
-  if (["tictactoe", "chess", "connect4"].includes(game)) {
+  if (["tictactoe", "chess", "connect4", "checkers"].includes(game)) {
     if (!["win", "lose", "draw"].includes(outcome?.toLowerCase() || "")) {
       return false;
     }
+  }
+
+  // Mahjong usa score 0 ou 1
+  if (game === "mahjong") {
+    return score === 0 || score === 1;
   }
 
   // Score não pode ser negativo
@@ -78,7 +85,14 @@ export async function POST(req: Request) {
     const rawScore = Number(body.score ?? 0);
 
     // Validar jogo permitido
-    const allowedGames = ["clickrush", "tictactoe", "chess", "connect4"];
+    const allowedGames = [
+      "clickrush",
+      "tictactoe",
+      "chess",
+      "connect4",
+      "checkers",
+      "mahjong",
+    ];
     if (!allowedGames.includes(game)) {
       return NextResponse.json(
         { ok: false, error: "Jogo não reconhecido" },
@@ -112,6 +126,13 @@ export async function POST(req: Request) {
     } else if (game === "connect4") {
       if (outcome === "win") total = rewards.connect4WinCoins;
       else if (outcome === "lose") total = rewards.connect4LoseCoins;
+      else total = 0;
+    } else if (game === "checkers") {
+      if (outcome === "win") total = rewards.connect4WinCoins;
+      else if (outcome === "lose") total = rewards.connect4LoseCoins;
+      else total = 0;
+    } else if (game === "mahjong") {
+      if (rawScore > 0) total = rewards.chessWinCoins;
       else total = 0;
     }
 

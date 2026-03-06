@@ -586,21 +586,44 @@ export default function PetStatus() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (!companionCode || companionCode.length !== 6) return;
-                      const width = 250;
-                      const height = 380;
+                      if (!companionCode || companionCode.length !== 6) {
+                        setMessage(
+                          "⚠️ Código de companhia não disponível. Faz login primeiro.",
+                        );
+                        setTimeout(() => setMessage(null), 3000);
+                        return;
+                      }
+
+                      const width = 400;
+                      const height = 500;
                       const left = window.screen.width - width - 20;
-                      const top = 20;
-                      const popup = window.open(
-                        `/companion?code=${encodeURIComponent(companionCode)}`,
-                        "petCompanion",
-                        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no`,
-                      );
-                      if (popup) setCompanionWindow(popup);
+                      const top = 100;
+
+                      try {
+                        const popup = window.open(
+                          `/companion?code=${encodeURIComponent(companionCode)}`,
+                          "petCompanion",
+                          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no`,
+                        );
+
+                        if (popup) {
+                          setCompanionWindow(popup);
+                          setMessage("🎉 Janela de companhia aberta!");
+                          setTimeout(() => setMessage(null), 2000);
+                        } else {
+                          setMessage(
+                            "⚠️ Popup bloqueado. Permite popups neste site.",
+                          );
+                          setTimeout(() => setMessage(null), 4000);
+                        }
+                      } catch (e) {
+                        setMessage("❌ Erro ao abrir janela de companhia");
+                        setTimeout(() => setMessage(null), 3000);
+                      }
                     }}
                     style={btnStyle("#e74c3c")}
                   >
-                    Fazer Companhia
+                    🎾 Fazer Companhia
                   </button>
                   <button
                     type="button"

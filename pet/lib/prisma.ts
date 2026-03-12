@@ -1,5 +1,3 @@
-// Load .env for local scripts and ensure DATABASE_URL is available
-import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };

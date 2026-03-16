@@ -62,23 +62,24 @@ model Person {
   createdAt         DateTime           @default(now())
   coins             Int                @default(0)
   totalTimeSeconds  Int                @default(0)
-  workSessions      WorkSession[]      @relation("PersonWorkSessions")
+  bet_votes         bet_votes[]
+  bets              bets[]
   companionSessions CompanionSession[] @relation("PersonCompanionSessions")
   samuraiSessions   SamuraiSession[]   @relation("PersonSamuraiSessions")
+  workSessions      WorkSession[]      @relation("PersonWorkSessions")
 
   @@map("people")
 }
 
 model CompanionSession {
-  id         Int      @id @default(autoincrement())
-  personId   Int
-  code       String
-  startedAt  DateTime @default(now())
-  lastTickAt DateTime @default(now())
-  active     Boolean  @default(true)
-  coinsEarned Int     @default(0)
-
-  person Person @relation("PersonCompanionSessions", fields: [personId], references: [id])
+  id          Int      @id @default(autoincrement())
+  personId    Int
+  code        String
+  startedAt   DateTime @default(now())
+  lastTickAt  DateTime @default(now())
+  active      Boolean  @default(true)
+  coinsEarned Int      @default(0)
+  person      Person   @relation("PersonCompanionSessions", fields: [personId], references: [id])
 
   @@map("companion_sessions")
 }
@@ -125,17 +126,17 @@ model TeamPlayRoom {
 }
 
 model BugReport {
-  id          Int           @id @default(autoincrement())
+  id          Int             @id @default(autoincrement())
   title       String
   description String
-  severity    String        @default("medium")
-  status      String        @default("open")
+  severity    String          @default("medium")
+  status      String          @default("open")
   reporter    String?
   email       String?
   url         String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   files       BugReportFile[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
 
   @@map("bug_reports")
 }
@@ -148,8 +149,7 @@ model BugReportFile {
   fileType    String
   fileSize    Int
   createdAt   DateTime  @default(now())
-
-  bugReport BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+  bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
 
   @@index([bugReportId])
   @@map("bug_report_files")
@@ -166,4 +166,31 @@ model SystemLog {
   @@index([level])
   @@index([createdAt])
   @@map("system_logs")
+}
+
+model bet_votes {
+  id        Int      @id @default(autoincrement())
+  betId     Int
+  personId  Int
+  optionIdx Int
+  coins     Int      @default(0)
+  createdAt DateTime @default(now())
+  bets      bets     @relation(fields: [betId], references: [id], onDelete: Cascade)
+  people    Person   @relation(fields: [personId], references: [id])
+
+  @@unique([betId, personId, optionIdx])
+}
+
+model bets {
+  id          Int         @id @default(autoincrement())
+  title       String
+  description String?
+  creatorId   Int
+  options     Json        @default("[]") @db.Json
+  status      String      @default("active")
+  endsAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  bet_votes   bet_votes[]
+  creator     Person      @relation(fields: [creatorId], references: [id])
 }

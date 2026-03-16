@@ -6,8 +6,8 @@ import { z } from "zod";
 // Schema de validação
 const createBetSchema = z.object({
     title: z.string().min(1).max(200),
-    description: z.string().max(1000).optional(),
-    endsAt: z.string().datetime().optional(),
+    description: z.string().max(1000).optional().nullable(),
+    endsAt: z.string().optional().nullable(),
     options: z
         .array(
             z.object({
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
         // Validar dados com Zod
         const validation = createBetSchema.safeParse(body);
         if (!validation.success) {
+            console.error("[Validation Error]", validation.error.issues);
             return NextResponse.json(
                 {
                     error: "Dados inválidos",

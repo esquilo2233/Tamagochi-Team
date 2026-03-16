@@ -6,7 +6,11 @@ const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
-const connectionString = process.env.DATABASE_URL;
+// Supabase integration usa POSTGRES_URL ou POSTGRES_PRISMA_URL
+const connectionString =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL;
 
 // Usar adapter apenas se DATABASE_URL estiver presente
 const adapter = connectionString

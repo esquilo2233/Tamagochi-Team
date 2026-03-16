@@ -3,10 +3,21 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
-const connectionString = process.env.DATABASE_URL;
+// Supabase integration usa POSTGRES_URL ou POSTGRES_PRISMA_URL
+const connectionString =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL;
+
+console.log("[Prisma] DATABASE_URL configurada:", !!connectionString);
+console.log("[Prisma] Variáveis disponíveis:", {
+    DATABASE_URL: !!process.env.DATABASE_URL,
+    POSTGRES_PRISMA_URL: !!process.env.POSTGRES_PRISMA_URL,
+    POSTGRES_URL: !!process.env.POSTGRES_URL,
+});
 
 if (!connectionString) {
-    console.error("[Prisma] DATABASE_URL não está definida!");
+    console.error("[Prisma] Nenhuma URL de banco encontrada!");
 }
 
 // Usar adapter apenas se DATABASE_URL estiver presente

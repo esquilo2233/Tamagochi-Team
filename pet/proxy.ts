@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decrypt } from "@/lib/encryption";
 
 // User agents conhecidos de ferramentas de API
 const BLOCKED_USER_AGENTS = [
@@ -14,6 +15,22 @@ const BLOCKED_USER_AGENTS = [
     "okhttp",
     "httpclient",
 ];
+
+// Verificar se usuário é admin
+async function isAdmin(request: NextRequest): Promise<boolean> {
+    try {
+        const session = request.cookies.get("person_session")?.value;
+        if (!session) return false;
+
+        const decrypted = decrypt(session);
+        const sessionData = JSON.parse(decrypted);
+
+        const role = (sessionData?.role ?? "").trim().toLowerCase();
+        return role === "admin" || role === "gestor";
+    } catch {
+        return false;
+    }
+}
 
 // Verificar se é um browser real
 function isRealBrowser(req: NextRequest): boolean {
@@ -65,11 +82,19 @@ function hasValidOrigin(req: NextRequest): boolean {
     return true;
 }
 
-export function proxy(request: NextRequest) {
-    // Apenas proteger APIs, não páginas ou assets
+export async function proxy(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
 
-    // Ignorar páginas, assets estáticos, etc.
+    // Proteção para /bets/create (apenas admins)
+    if (pathname.startsWith("/bets/create")) {
+        const admin = await isAdmin(request);
+        if (!admin) {
+            return NextResponse.redirect(new URL("/bets", request.url));
+        }
+        return NextResponse.next();
+    }
+
+    // Apenas proteger APIs, não páginas ou assets
     if (
         !pathname.startsWith("/api/") ||
         (pathname.startsWith("/api/") &&
@@ -84,7 +109,7 @@ export function proxy(request: NextRequest) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // Verificar origin válida
+    // Verificar origin válidas
     if (!hasValidOrigin(request)) {
         console.warn(`[Security] Blocked invalid origin: ${pathname}`);
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -94,5 +119,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: "/api/:path*",
+    matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

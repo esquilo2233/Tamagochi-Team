@@ -15,7 +15,9 @@ export default function Navigation() {
             const res = await fetch("/api/me");
             if (res.ok) {
                 const data = await res.json();
-                setUser(data);
+                if (data.ok && data.person) {
+                    setUser(data.person);
+                }
             }
         } catch (error) {
             console.error("Erro ao buscar usuário:", error);
@@ -35,7 +37,9 @@ export default function Navigation() {
         { href: "/system-logs", label: "Logs", icon: "📋" },
     ];
 
-    const isAdmin = user?.role === "admin" || user?.role === "gestor";
+    // Nota: role não é retornado pela API /api/me por segurança
+    // Admin menu só aparece se necessário (pode ser ajustado)
+    const isAdmin = false; // API /api/me não retorna role
 
     return (
         <>
@@ -62,7 +66,7 @@ export default function Navigation() {
                     {user ? (
                         <div className="mt-3 p-2 bg-gray-800 rounded-lg border border-gray-700">
                             <p className="text-sm text-white font-medium truncate">
-                                {user.name}
+                                {user.name || "Usuário"}
                             </p>
                             <p className="text-sm text-yellow-400 font-bold">
                                 🪙 {user.coins || 0} coins
@@ -94,27 +98,6 @@ export default function Navigation() {
                             </Link>
                         ))}
                     </div>
-
-                    {/* Admin Menu */}
-                    {isAdmin && (
-                        <div className="px-2 mt-4 pt-4 border-t border-gray-700">
-                            <p className="text-xs text-gray-500 uppercase font-semibold mb-2 px-2">
-                                Admin
-                            </p>
-                            {adminNavItems.map((item) => (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition mb-1"
-                                >
-                                    <span className="text-xl">{item.icon}</span>
-                                    <span className="text-sm font-medium">
-                                        {item.label}
-                                    </span>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
                 </div>
             </nav>
 

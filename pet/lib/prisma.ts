@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
+// Desabilitar verificação de certificado SSL (apenas para Supabase na Vercel)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
 // Supabase integration usa POSTGRES_URL ou POSTGRES_PRISMA_URL
@@ -20,12 +23,9 @@ if (!connectionString) {
     console.error("[Prisma] Nenhuma URL de banco encontrada!");
 }
 
-// PrismaPg com SSL inseguro para Supabase
+// PrismaPg com SSL para Supabase
 const adapter = new PrismaPg({
     connectionString,
-    ssl: {
-        rejectUnauthorized: false,
-    },
 });
 
 export const prisma =

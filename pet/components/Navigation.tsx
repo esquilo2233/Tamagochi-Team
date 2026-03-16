@@ -15,9 +15,7 @@ export default function Navigation() {
             const res = await fetch("/api/me");
             if (res.ok) {
                 const data = await res.json();
-                if (data.ok && data.person) {
-                    setUser(data.person);
-                }
+                setUser(data);
             }
         } catch (error) {
             console.error("Erro ao buscar usuário:", error);
@@ -37,9 +35,7 @@ export default function Navigation() {
         { href: "/system-logs", label: "Logs", icon: "📋" },
     ];
 
-    // Nota: role não é retornado pela API /api/me por segurança
-    // Admin menu só aparece se necessário (pode ser ajustado)
-    const isAdmin = false; // API /api/me não retorna role
+    const isAdmin = user?.role === "admin" || user?.role === "gestor";
 
     return (
         <>
@@ -98,6 +94,27 @@ export default function Navigation() {
                             </Link>
                         ))}
                     </div>
+
+                    {/* Admin Menu */}
+                    {isAdmin && (
+                        <div className="px-2 mt-4 pt-4 border-t border-gray-700">
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-2 px-2">
+                                Admin
+                            </p>
+                            {adminNavItems.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition mb-1"
+                                >
+                                    <span className="text-xl">{item.icon}</span>
+                                    <span className="text-sm font-medium">
+                                        {item.label}
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </nav>
 

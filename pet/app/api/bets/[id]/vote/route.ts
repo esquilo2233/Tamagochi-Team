@@ -38,8 +38,13 @@ export async function POST(
 
         // 3. Parse e validação do body
         const body = await request.json();
+        console.log("[Vote API] Body recebido:", body);
         const validation = voteSchema.safeParse(body);
         if (!validation.success) {
+            console.error(
+                "[Vote API] Validação falhou:",
+                validation.error.issues,
+            );
             return NextResponse.json(
                 {
                     error: "Dados inválidos",

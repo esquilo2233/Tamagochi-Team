@@ -7,10 +7,16 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Supabase integration usa POSTGRES_URL ou POSTGRES_PRISMA_URL
-const connectionString =
+let connectionString =
     process.env.DATABASE_URL ||
     process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL;
+
+// Adicionar sslaccept para aceitar certificados self-signed do Supabase
+if (connectionString && !connectionString.includes("sslaccept")) {
+    const separator = connectionString.includes("?") ? "&" : "?";
+    connectionString += `${separator}sslaccept=accept_invalid_certs`;
+}
 
 // Usar adapter apenas se DATABASE_URL estiver presente
 const adapter = connectionString

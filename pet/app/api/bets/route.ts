@@ -12,7 +12,6 @@ const createBetSchema = z.object({
         .array(
             z.object({
                 label: z.string().min(1).max(100),
-                odds: z.number().min(1).max(100).optional(),
             }),
         )
         .min(2)
@@ -140,7 +139,6 @@ export async function POST(request: NextRequest) {
                 creatorId: admin.id,
                 options: options.map((opt) => ({
                     label: opt.label,
-                    odds: opt.odds || 1,
                 })),
                 endsAt: endsAt ? new Date(endsAt) : null,
                 status: "active",

@@ -4,16 +4,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
 // Supabase integration usa POSTGRES_URL ou POSTGRES_PRISMA_URL
-let connectionString =
+const connectionString =
     process.env.DATABASE_URL ||
     process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL;
-
-// Adicionar sslaccept para aceitar certificados self-signed do Supabase
-if (connectionString && !connectionString.includes("sslaccept")) {
-    const separator = connectionString.includes("?") ? "&" : "?";
-    connectionString += `${separator}sslaccept=accept_invalid_certs`;
-}
 
 console.log("[Prisma] DATABASE_URL configurada:", !!connectionString);
 console.log("[Prisma] Variáveis disponíveis:", {
@@ -26,17 +20,18 @@ if (!connectionString) {
     console.error("[Prisma] Nenhuma URL de banco encontrada!");
 }
 
-// Usar adapter apenas se DATABASE_URL estiver presente
-const adapter = connectionString
-    ? new PrismaPg({
-          connectionString,
-      })
-    : undefined;
+// PrismaPg com SSL inseguro para Supabase
+const adapter = new PrismaPg({
+    connectionString,
+    ssl: {
+        rejectUnauthorized: false,
+    },
+});
 
 export const prisma =
     globalForPrisma.prisma ||
     new PrismaClient({
-        ...(adapter ? { adapter } : {}),
+        adapter,
         log: ["error", "warn", "info"],
     });
 

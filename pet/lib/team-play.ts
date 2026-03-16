@@ -1,17 +1,20 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
-// Configuração compatível com Prisma v7 + Accelerate
-const clientOptions: any = { log: ["error"] };
-if (process.env.DATABASE_URL) {
-    clientOptions.accelerateUrl = process.env.DATABASE_URL;
-}
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL!,
+});
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient(clientOptions);
+const adapter = new PrismaPg(pool);
+
+export const prisma =
+    globalForPrisma.prisma ?? new PrismaClient({ adapter, log: ["error"] });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 

@@ -40,13 +40,13 @@ export default function Navigation() {
     return (
         <>
             {/* Bottom Navigation (Mobile) */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-purple-900 border-t border-purple-600 z-50 md:hidden safe-area-pb">
+            <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-50 md:hidden safe-area-pb">
                 <div className="flex justify-around items-center py-2">
                     {navItems.slice(0, 5).map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="flex flex-col items-center px-3 py-1 text-purple-100 hover:text-white hover:bg-purple-800 rounded-lg transition"
+                            className="flex flex-col items-center px-3 py-1 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition"
                         >
                             <span className="text-xl">{item.icon}</span>
                             <span className="text-xs mt-1">{item.label}</span>
@@ -56,36 +56,36 @@ export default function Navigation() {
             </nav>
 
             {/* Side Navigation (Desktop) */}
-            <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-purple-900 border-r border-purple-600 z-50 flex-col shadow-xl">
-                <div className="p-4 border-b border-purple-600 bg-purple-800">
+            <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-gray-900 border-r border-gray-700 z-50 flex-col shadow-xl">
+                <div className="p-4 border-b border-gray-700 bg-gray-800">
                     <h1 className="text-xl font-bold text-white">🎮 Samurai</h1>
                     {user ? (
-                        <div className="mt-3 p-2 bg-purple-700/50 rounded-lg">
+                        <div className="mt-3 p-2 bg-gray-800 rounded-lg border border-gray-700">
                             <p className="text-sm text-white font-medium truncate">
                                 {user.name}
                             </p>
-                            <p className="text-sm text-yellow-300 font-bold">
+                            <p className="text-sm text-yellow-400 font-bold">
                                 🪙 {user.coins || 0} coins
                             </p>
                         </div>
                     ) : (
-                        <p className="text-sm text-purple-200 mt-2">
+                        <p className="text-sm text-gray-400 mt-2">
                             Não conectado
                         </p>
                     )}
                 </div>
 
-                <div className="flex-1 py-4 overflow-y-auto bg-purple-900">
+                <div className="flex-1 py-4 overflow-y-auto bg-gray-900">
                     {/* Main Menu */}
                     <div className="px-2">
-                        <p className="text-xs text-purple-300 uppercase font-semibold mb-2 px-2">
+                        <p className="text-xs text-gray-500 uppercase font-semibold mb-2 px-2">
                             Menu
                         </p>
                         {navItems.map((item) => (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className="flex items-center gap-3 px-3 py-2.5 text-purple-100 hover:text-white hover:bg-purple-800 rounded-lg transition mb-1"
+                                className="flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition mb-1"
                             >
                                 <span className="text-xl">{item.icon}</span>
                                 <span className="text-sm font-medium">
@@ -97,15 +97,15 @@ export default function Navigation() {
 
                     {/* Admin Menu */}
                     {isAdmin && (
-                        <div className="px-2 mt-4 pt-4 border-t border-purple-600">
-                            <p className="text-xs text-purple-300 uppercase font-semibold mb-2 px-2">
+                        <div className="px-2 mt-4 pt-4 border-t border-gray-700">
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-2 px-2">
                                 Admin
                             </p>
                             {adminNavItems.map((item) => (
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    className="flex items-center gap-3 px-3 py-2.5 text-purple-100 hover:text-white hover:bg-purple-800 rounded-lg transition mb-1"
+                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition mb-1"
                                 >
                                     <span className="text-xl">{item.icon}</span>
                                     <span className="text-sm font-medium">
